@@ -130,7 +130,7 @@ jobs:
         uses: docker/build-push-action@v6
         id: push
         with:
-          context: .
+          context: ./Woori-Doori-BE
           file: ./Woori-Doori-BE/Dockerfile
           push: true
           tags: |
