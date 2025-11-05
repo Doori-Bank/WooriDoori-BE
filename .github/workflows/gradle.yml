@@ -318,13 +318,18 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           command_timeout: 10m
           script: |
-            OWNER_LC=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')
+            OOWNER_LC=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')
             IMAGE="ghcr.io/${OWNER_LC}/application"
             ENV_PATH="/opt/woori/.env"
             
-            # 1) 서버에 .env 생성 (GitHub Secrets에서 값 주입)
-            sudo mkdir -p /opt/woori
-            sudo bash -lc 'cat > '"$ENV_PATH"' <<EOF
+            set -euo pipefail
+            
+            # 1) 준비 디렉터리 및 파일(권한) 생성
+            sudo mkdir -p "$(dirname "$ENV_PATH")"
+            sudo chown ubuntu:ubuntu "$(dirname "$ENV_PATH")" || true
+            
+            # 안전하게 .env 생성: sudo tee 를 사용하면 따옴표/확장 문제가 사라짐
+            sudo -u ubuntu tee "$ENV_PATH" > /dev/null <<'ENV_EOF'
             S3_BUCKET=${{ secrets.S3_BUCKET }}
             S3_ACCESS_KEY=${{ secrets.S3_ACCESS_KEY }}
             S3_SECRET_KEY=${{ secrets.S3_SECRET_KEY }}
@@ -336,15 +341,19 @@ jobs:
             DB_PASSWORD=${{ secrets.DB_PASSWORD }}
             REDIS_URL=${{ secrets.REDIS_URL }}
             REDIS_PORT=${{ secrets.REDIS_PORT }}
-            EOF'
-            sudo chmod 600 "$ENV_PATH"
+            ENV_EOF
             
-            # 2) 이미지 풀 & 재기동 (digest로 고정)
+            # 소유자/권한 확실히 설정
+            sudo chown root:root "$ENV_PATH"
+            sudo chmod 600 "$ENV_PATH"
+            # (원하면 파일 소유자를 ubuntu로 바꾸려면 위 chown을 ubuntu:ubuntu로 수정하세요)
+            
+            # 2) 이미지 풀 & 컨테이너 재기동 (digest 고정)
             docker login ghcr.io -u '${{ github.actor }}' -p '${{ secrets.G_TOKEN }}'
             docker pull "${IMAGE}@${{ needs.build-and-push.outputs.image_digest }}"
             docker rm -f app || true
             
-            # 3) .env를 컨테이너에 주입 (마운트 + --env-file 둘 다 안전하게)
+            # 3) 컨테이너 실행: --env-file 와 마운트 둘 다 지정 (Dotenv가 /app/.env 를 찾으니 마운트 필수)
             docker run -d --name app -p 8080:8080 \
               --env-file "$ENV_PATH" \
               -v "$ENV_PATH":/app/.env:ro \
