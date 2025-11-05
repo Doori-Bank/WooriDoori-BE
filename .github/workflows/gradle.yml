@@ -258,7 +258,7 @@ jobs:
 
       # sbom.json 파일을 이미지에 증명용으로 첨부
       # 이미지 내부에 GHCR 메타데이터로 구성요소들이 남아있음
-         - name: Attest SBOM
+      - name: Attest SBOM
         env:
           DIGEST: ${{ steps.push.outputs.digest }}
         run: |
@@ -269,6 +269,11 @@ jobs:
             --predicate sbom.json \
             --type cyclonedx \
             ${{ env.IMAGE }}@${DIGEST}
+      - name: Check SBOM file path
+        run: |
+          echo "현재 디렉터리: $(pwd)"
+          echo "파일 목록:"
+          find . -name "sbom.json"
 
 
       - name: Verify image base
