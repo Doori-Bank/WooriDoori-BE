@@ -318,18 +318,20 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           command_timeout: 10m
           script: |
-            OOWNER_LC=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')
+            OWNER_LC=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')
             IMAGE="ghcr.io/${OWNER_LC}/application"
-            ENV_PATH="/opt/woori/.env"
+            ENV_DIR="/run/woori"                 # ← /run 은 일반적으로 tmpfs(RAM)
+            ENV_PATH="$ENV_DIR/.env"
             
             set -euo pipefail
             
-            # 1) 준비 디렉터리 및 파일(권한) 생성
-            sudo mkdir -p "$(dirname "$ENV_PATH")"
-            sudo chown ubuntu:ubuntu "$(dirname "$ENV_PATH")" || true
+            # 0) tmpfs 디렉터리 준비 (RAM 상에 생성)
+            sudo mkdir -p "$ENV_DIR"
+            sudo chmod 711 "$ENV_DIR"
             
-            # 안전하게 .env 생성: sudo tee 를 사용하면 따옴표/확장 문제가 사라짐
-            sudo -u ubuntu tee "$ENV_PATH" > /dev/null <<'ENV_EOF'
+            # 1) 임시 파일에 작성 후 루트로 이동 (로그 노출 방지 위해 echo/print 최소화)
+            TMP_ENV="$(mktemp)"
+            cat > "$TMP_ENV" <<'ENV_EOF'
             S3_BUCKET=${{ secrets.S3_BUCKET }}
             S3_ACCESS_KEY=${{ secrets.S3_ACCESS_KEY }}
             S3_SECRET_KEY=${{ secrets.S3_SECRET_KEY }}
@@ -343,18 +345,14 @@ jobs:
             REDIS_PORT=${{ secrets.REDIS_PORT }}
             ENV_EOF
             
-            # 소유자/권한 확실히 설정
+            sudo mv "$TMP_ENV" "$ENV_PATH"
             sudo chown root:root "$ENV_PATH"
             sudo chmod 600 "$ENV_PATH"
-            # (원하면 파일 소유자를 ubuntu로 바꾸려면 위 chown을 ubuntu:ubuntu로 수정하세요)
             
-            # 2) 이미지 풀 & 컨테이너 재기동 (digest 고정)
+            # 2) 컨테이너 재배포 (Dotenv가 /app/.env 를 찾으므로 바인드 마운트)
             docker login ghcr.io -u '${{ github.actor }}' -p '${{ secrets.G_TOKEN }}'
             docker pull "${IMAGE}@${{ needs.build-and-push.outputs.image_digest }}"
             docker rm -f app || true
-            
-            # 3) 컨테이너 실행: --env-file 와 마운트 둘 다 지정 (Dotenv가 /app/.env 를 찾으니 마운트 필수)
             docker run -d --name app -p 8080:8080 \
-              --env-file "$ENV_PATH" \
               -v "$ENV_PATH":/app/.env:ro \
               "${IMAGE}@${{ needs.build-and-push.outputs.image_digest }}"
