@@ -1,5 +1,6 @@
 package com.app.wooridooribe.controller;
 
+import com.app.wooridooribe.controller.dto.CardHistoryResponseDto;
 import com.app.wooridooribe.service.spending.SpendingService;
 import com.app.wooridooribe.controller.dto.ApiResponse;
 import lombok.RequiredArgsConstructor;
@@ -27,5 +28,13 @@ public class SpendingController {
     ) {
         Map<String, Object> result = spendingService.getMonthlySpendings(userId, year, month);
         return ResponseEntity.ok(ApiResponse.res(HttpStatus.OK.value(), "소비 내역 조회 성공", result));
+    }
+
+    @GetMapping("/detail/{historyId}")
+    public ResponseEntity<ApiResponse<CardHistoryResponseDto>> getSpendingDetail(
+            @PathVariable Long historyId
+    ) {
+        var result = spendingService.getSpendingDetail(historyId);
+        return ResponseEntity.ok(ApiResponse.res(HttpStatus.OK.value(), "소비 내역 상세 조회 성공", result));
     }
 }

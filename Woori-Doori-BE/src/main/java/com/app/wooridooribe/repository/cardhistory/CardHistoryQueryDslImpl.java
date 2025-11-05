@@ -51,5 +51,17 @@ public class CardHistoryQueryDslImpl implements CardHistoryQueryDsl {
         // ③ DTO로 묶어서 반환
         return new CardHistorySummaryResponseDto(totalAmount != null ? totalAmount : 0, histories);
     }
+
+    @Override
+    public CardHistory findDetailById(Long historyId) {
+        QCardHistory history = QCardHistory.cardHistory;
+        QMemberCard memberCard = QMemberCard.memberCard;
+
+        return queryFactory
+                .selectFrom(history)
+                .join(history.memberCard, memberCard).fetchJoin()   // memberCard 같이 가져옴
+                .where(history.id.eq(historyId))
+                .fetchOne();
+    }
 }
 

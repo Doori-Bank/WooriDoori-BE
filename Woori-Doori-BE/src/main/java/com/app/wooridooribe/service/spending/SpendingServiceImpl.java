@@ -1,6 +1,7 @@
 package com.app.wooridooribe.service.spending;
 
 import com.app.wooridooribe.controller.dto.CardHistoryResponseDto;
+import com.app.wooridooribe.entity.CardHistory;
 import com.app.wooridooribe.entity.type.StatusType;
 import com.app.wooridooribe.exception.CustomException;
 import com.app.wooridooribe.exception.ErrorCode;
@@ -45,5 +46,12 @@ public class SpendingServiceImpl implements SpendingService {
         if (year < 2000 || month < 1 || month > 12) {
             throw new CustomException(ErrorCode.HISTORY_INVALID_DATE, ErrorCode.HISTORY_INVALID_DATE.getErrorMsg());
         }
+    }
+
+    @Override
+    public CardHistoryResponseDto getSpendingDetail(Long historyId) {
+        CardHistory entity = cardHistoryRepository.findDetailById(historyId);
+        if (entity == null) throw new CustomException(ErrorCode.HISTORY_ISNULL);
+        return CardHistoryResponseDto.from(entity);
     }
 }
