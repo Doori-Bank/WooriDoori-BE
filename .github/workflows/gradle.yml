@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./Woori-Doori-App-BE
+        working-directory: ./Woori-Doori-BE
     outputs:
       image_digest: ${{ steps.push.outputs.digest }}
 
