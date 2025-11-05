@@ -245,16 +245,15 @@ jobs:
           format: "cyclonedx"
           output: "sbom.json"
 
-      - name: Install Cosign
+            - name: Install Cosign
         uses: sigstore/cosign-installer@v3
 
-      # 이미지 서명 (keyless)
       - name: Sign Container Image
         env:
           DIGEST: ${{ steps.push.outputs.digest }}
         run: |
           cosign sign --yes \
-            ${{ env.IMAGE }}@${DIGEST}
+            "${{ env.IMAGE }}@${DIGEST}"
 
       # sbom.json 파일을 이미지에 증명용으로 첨부
       # 이미지 내부에 GHCR 메타데이터로 구성요소들이 남아있음
@@ -262,28 +261,22 @@ jobs:
         env:
           DIGEST: ${{ steps.push.outputs.digest }}
         run: |
-          # sbom.json 존재 확인(디버깅용, 실패하지 않게 || true)
-          ls -l sbom.json || true
-
+          # sbom.json 존재 확인 (디버깅에 유용)
+          ls -l sbom.json
           cosign attest --yes \
             --predicate sbom.json \
             --type cyclonedx \
-            ${{ env.IMAGE }}@${DIGEST}
-      - name: Check SBOM file path
-        run: |
-          echo "현재 디렉터리: $(pwd)"
-          echo "파일 목록:"
-          find . -name "sbom.json"
-
+            "${{ env.IMAGE }}@${DIGEST}"
 
       - name: Verify image base
         run: |
           echo "Checking image layers and base..."
-          docker pull ${{ env.IMAGE }}:sha-${{ github.sha }}
-          docker history ${{ env.IMAGE }}:sha-${{ github.sha }} --no-trunc
+          docker pull "${{ env.IMAGE }}@${{ steps.push.outputs.digest }}"
+          docker history "${{ env.IMAGE }}@${{ steps.push.outputs.digest }}" --no-trunc
           echo "Image verification completed successfully"
 
-  deploy:
+
+    deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
@@ -294,7 +287,7 @@ jobs:
         shell: bash
         run: |
           echo "OWNER_LC=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_ENV
-          echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/application:sha-${{ github.sha }}" >> $GITHUB_ENV
+          echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/application" >> $GITHUB_ENV
 
       - name: Login to GHCR
         uses: docker/login-action@v3
@@ -307,8 +300,8 @@ jobs:
         run: |
           cosign verify \
             --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
-            --certificate-identity "https://github.com/${{ github.repository }}/.github/workflows/gradle-publish.yml@refs/heads/main" \
-            "${{ env.IMAGE }}"
+            --certificate-identity "https://github.com/${{ github.workflow_ref }}" \
+            "${{ env.IMAGE }}@${{ needs.build-and-push.outputs.image_digest }}"
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.2.0
