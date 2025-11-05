@@ -31,7 +31,6 @@ jobs:
           java-version: "17"
           distribution: "temurin"
 
-
       - name: Create .env from secrets
         run: |
           echo "S3_BUCKET=${{ secrets.S3_BUCKET }}" >> .env
@@ -44,10 +43,7 @@ jobs:
           echo "DB_USERNAME=${{ secrets.DB_USERNAME }}" >> .env
           echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
           echo "REDIS_URL=${{ secrets.REDIS_URL }}" >> .env
-          echo "REDIS_PORT=${{ secrets.REDIS_PORT }}" >> .env   
-          
-          
-          
+          echo "REDIS_PORT=${{ secrets.REDIS_PORT }}" >> .env
 
       - name: Cache Gradle packages
         uses: actions/cache@v4
@@ -160,7 +156,7 @@ jobs:
             count=$(jq '.runs[0].results | length' trivy-results.sarif)
             echo "result_count=$count" >> $GITHUB_OUTPUT
             echo "Found $count vulnerabilities"
-          
+
             # 취약점 상세 정보 출력
             if [ "$count" -gt 0 ]; then
               echo "=== Vulnerability Details ==="
@@ -245,15 +241,16 @@ jobs:
           format: "cyclonedx"
           output: "sbom.json"
 
-            - name: Install Cosign
+      - name: Install Cosign
         uses: sigstore/cosign-installer@v3
 
+      # 이미지 서명 (keyless)
       - name: Sign Container Image
         env:
           DIGEST: ${{ steps.push.outputs.digest }}
         run: |
           cosign sign --yes \
-            "${{ env.IMAGE }}@${DIGEST}"
+            ${{ env.IMAGE }}@${DIGEST}
 
       # sbom.json 파일을 이미지에 증명용으로 첨부
       # 이미지 내부에 GHCR 메타데이터로 구성요소들이 남아있음
@@ -261,12 +258,18 @@ jobs:
         env:
           DIGEST: ${{ steps.push.outputs.digest }}
         run: |
-          # sbom.json 존재 확인 (디버깅에 유용)
-          ls -l sbom.json
+          # sbom.json 존재 확인(디버깅용, 실패하지 않게 || true)
+          ls -l sbom.json || true
+
           cosign attest --yes \
             --predicate sbom.json \
             --type cyclonedx \
-            "${{ env.IMAGE }}@${DIGEST}"
+            ${{ env.IMAGE }}@${DIGEST}
+      - name: Check SBOM file path
+        run: |
+          echo "현재 디렉터리: $(pwd)"
+          echo "파일 목록:"
+          find . -name "sbom.json"
 
       - name: Verify image base
         run: |
@@ -275,8 +278,7 @@ jobs:
           docker history "${{ env.IMAGE }}@${{ steps.push.outputs.digest }}" --no-trunc
           echo "Image verification completed successfully"
 
-
-    deploy:
+  deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
@@ -287,6 +289,7 @@ jobs:
         shell: bash
         run: |
           echo "OWNER_LC=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_ENV
+          # 태그 제거: 베이스 레퍼런스만 유지
           echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/application" >> $GITHUB_ENV
 
       - name: Login to GHCR
@@ -300,8 +303,8 @@ jobs:
         run: |
           cosign verify \
             --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
-            --certificate-identity "https://github.com/${{ github.workflow_ref }}" \
-            "${{ env.IMAGE }}@${{ needs.build-and-push.outputs.image_digest }}"
+            --certificate-identity "https://github.com/${{ github.repository }}/.github/workflows/gradle-publish.yml@refs/heads/main" \
+            "${{ env.IMAGE }}"
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.2.0
