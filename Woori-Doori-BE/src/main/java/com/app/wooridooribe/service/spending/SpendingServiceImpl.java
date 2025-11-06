@@ -58,14 +58,30 @@ public class SpendingServiceImpl implements SpendingService {
     @Override
     @Transactional
     public void updateIncludeTotal(Long historyId, boolean includeTotal) {
-        cardHistoryRepository.updateIncludeTotal(historyId, includeTotal);
+        var historyOpt = cardHistoryRepository.findById(historyId);
+        if (historyOpt.isEmpty()) {
+            throw new CustomException(ErrorCode.HISTORY_ISNULL);
+        }
+
+        try {
+            cardHistoryRepository.updateIncludeTotal(historyId, includeTotal);
+        } catch (CustomException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CustomException(ErrorCode.HISTORY_INCLUDE_UPDATE_FAIL, ErrorCode.HISTORY_INCLUDE_UPDATE_FAIL.getErrorMsg());
+        }
     }
 
     @Override
     @Transactional
     public void updateCategory(Long historyId, String newCategory) {
+        var historyOpt = cardHistoryRepository.findById(historyId);
+        if (historyOpt.isEmpty()) {
+            throw new CustomException(ErrorCode.HISTORY_ISNULL);
+        }
+
         if (newCategory == null || newCategory.trim().isEmpty()) {
-            throw new CustomException(ErrorCode.HISTORY_UPDATE_FAIL, ErrorCode.HISTORY_UPDATE_FAIL.getErrorMsg());
+            throw new CustomException(ErrorCode.HISTORY_INVALID_CATEGORY, ErrorCode.HISTORY_INVALID_CATEGORY.getErrorMsg());
         }
 
         try {
@@ -73,7 +89,7 @@ public class SpendingServiceImpl implements SpendingService {
         } catch (CustomException e) {
             throw e;
         } catch (Exception e) {
-            throw new CustomException(ErrorCode.HISTORY_UPDATE_FAIL, ErrorCode.HISTORY_UPDATE_FAIL.getErrorMsg());
+            throw new CustomException(ErrorCode.HISTORY_CATEGORY_UPDATE_FAIL, ErrorCode.HISTORY_CATEGORY_UPDATE_FAIL.getErrorMsg());
         }
     }
 }
