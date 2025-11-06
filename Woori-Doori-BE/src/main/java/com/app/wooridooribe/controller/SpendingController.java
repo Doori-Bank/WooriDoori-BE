@@ -31,12 +31,12 @@ public class SpendingController {
     public ResponseEntity<ApiResponse<CardHistoryResponseDto>> getSpendingDetail(
             @PathVariable Long historyId
     ) {
-        var result = spendingService.getSpendingDetail(historyId);
+        CardHistoryResponseDto result = spendingService.getSpendingDetail(historyId);
         return ResponseEntity.ok(ApiResponse.res(HttpStatus.OK.value(), "소비 내역 상세 조회 성공", result));
     }
 
     @PatchMapping("/{historyId}/{includeInTotal}")
-    public ResponseEntity<?> updateIncludeTotal(
+    public ResponseEntity<ApiResponse<Map<String, Object>>> updateIncludeTotal(
             @PathVariable Long historyId,
             @PathVariable boolean includeInTotal
     ) {
@@ -57,7 +57,7 @@ public class SpendingController {
     }
 
     @PatchMapping("/{historyId}/category")
-    public ResponseEntity<?> updateCategory(
+    public ResponseEntity<ApiResponse<Map<String, Object>>> updateCategory(
             @PathVariable Long historyId,
             @RequestBody Map<String, String> request
     ) {
@@ -75,7 +75,7 @@ public class SpendingController {
     }
 
     @PatchMapping("/{historyId}/dutchpay")
-    public ResponseEntity<?> updateDutchpay(
+    public ResponseEntity<ApiResponse<Map<String, Object>>> updateDutchpay(
             @PathVariable Long historyId,
             @RequestBody Map<String, Integer> request
     ) {
@@ -93,7 +93,7 @@ public class SpendingController {
     }
 
     @PatchMapping("/{historyId}/price")
-    public ResponseEntity<?> updatePrice(
+    public ResponseEntity<ApiResponse<Map<String, Object>>> updatePrice(
             @PathVariable Long historyId,
             @RequestBody Map<String, Integer> request
     ) {

@@ -1,6 +1,7 @@
 package com.app.wooridooribe.service.spending;
 
 import com.app.wooridooribe.controller.dto.CardHistoryResponseDto;
+import com.app.wooridooribe.controller.dto.CardHistorySummaryResponseDto;
 import com.app.wooridooribe.entity.CardHistory;
 import com.app.wooridooribe.entity.type.StatusType;
 import com.app.wooridooribe.exception.CustomException;
@@ -24,7 +25,7 @@ public class SpendingServiceImpl implements SpendingService {
     public Map<String, Object> getMonthlySpendings(Long userId, int year, int month) {
         validateDate(year, month);
 
-        var summary = cardHistoryRepository
+        CardHistorySummaryResponseDto summary = cardHistoryRepository
                 .findByUserAndMonthAndStatus(userId, year, month, StatusType.ABLE);
 
         // history.isEmpty() 검사 대신 summary 내부에서 합계가 0일 때 판단
@@ -62,8 +63,8 @@ public class SpendingServiceImpl implements SpendingService {
     @Override
     @Transactional
     public void updateIncludeTotal(Long historyId, boolean includeTotal) {
-        var historyOpt = cardHistoryRepository.findById(historyId);
-        if (historyOpt.isEmpty()) {
+        CardHistory entity = cardHistoryRepository.findDetailById(historyId);
+        if (entity == null) {
             throw new CustomException(ErrorCode.HISTORY_ISNULL);
         }
 
@@ -79,8 +80,8 @@ public class SpendingServiceImpl implements SpendingService {
     @Override
     @Transactional
     public void updateCategory(Long historyId, String newCategory) {
-        var historyOpt = cardHistoryRepository.findById(historyId);
-        if (historyOpt.isEmpty()) {
+        CardHistory entity = cardHistoryRepository.findDetailById(historyId);
+        if (entity == null) {
             throw new CustomException(ErrorCode.HISTORY_ISNULL);
         }
 
@@ -100,8 +101,8 @@ public class SpendingServiceImpl implements SpendingService {
     @Override
     @Transactional
     public void updateDutchpay(Long historyId, int count) {
-        var historyOpt = cardHistoryRepository.findById(historyId);
-        if (historyOpt.isEmpty()) {
+        CardHistory entity = cardHistoryRepository.findDetailById(historyId);
+        if (entity == null) {
             throw new CustomException(ErrorCode.HISTORY_ISNULL);
         }
 
@@ -119,8 +120,8 @@ public class SpendingServiceImpl implements SpendingService {
     @Override
     @Transactional
     public void updatePrice(Long historyId, int price) {
-        var historyOpt = cardHistoryRepository.findById(historyId);
-        if (historyOpt.isEmpty()) {
+        CardHistory entity = cardHistoryRepository.findDetailById(historyId);
+        if (entity == null) {
             throw new CustomException(ErrorCode.HISTORY_ISNULL);
         }
 
