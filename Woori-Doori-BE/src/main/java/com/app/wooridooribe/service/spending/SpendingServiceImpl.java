@@ -54,4 +54,10 @@ public class SpendingServiceImpl implements SpendingService {
         if (entity == null) throw new CustomException(ErrorCode.HISTORY_ISNULL);
         return CardHistoryResponseDto.from(entity);
     }
+
+    @Override
+    @Transactional
+    public void updateIncludeTotal(Long historyId, boolean includeTotal) {
+        cardHistoryRepository.updateIncludeTotal(historyId, includeTotal);
+    }
 }

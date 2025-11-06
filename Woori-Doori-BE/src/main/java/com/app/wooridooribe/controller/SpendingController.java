@@ -37,4 +37,25 @@ public class SpendingController {
         var result = spendingService.getSpendingDetail(historyId);
         return ResponseEntity.ok(ApiResponse.res(HttpStatus.OK.value(), "소비 내역 상세 조회 성공", result));
     }
+
+    @PatchMapping("/{historyId}/{includeInTotal}")
+    public ResponseEntity<?> updateIncludeTotal(
+            @PathVariable Long historyId,
+            @PathVariable boolean includeInTotal
+    ) {
+        spendingService.updateIncludeTotal(historyId, includeInTotal);
+
+        Map<String, Object> result = Map.of(
+                "historyId", historyId,
+                "includeInTotal", includeInTotal
+        );
+
+        String message = includeInTotal
+                ? "지출 합계에 포함되었습니다."
+                : "지출 합계에서 제외되었습니다.";
+
+        return ResponseEntity.ok(
+                ApiResponse.res(HttpStatus.OK.value(), message, result)
+        );
+    }
 }

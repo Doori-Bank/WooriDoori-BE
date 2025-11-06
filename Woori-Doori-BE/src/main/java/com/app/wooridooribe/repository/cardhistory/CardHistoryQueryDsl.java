@@ -9,4 +9,6 @@ public interface CardHistoryQueryDsl {
     CardHistorySummaryResponseDto findByUserAndMonthAndStatus(Long userId, int year, int month, StatusType status);
 
     CardHistory findDetailById(Long historyId);
+
+    void updateIncludeTotal(Long historyId, boolean includeTotal);
 }

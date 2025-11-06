@@ -39,7 +39,7 @@ public class CardHistory {
     @Column(name = "history_category", nullable = false)
     private String historyCategory; // 카테고리
 
-    @Column(name = "history_includeTotal", nullable = false)
+    @Column(name = "history_include_total", nullable = false)
     private String historyIncludeTotal; // 총지출금액 포함여부
 
     @Column(name = "history_dutchpay", nullable = false)

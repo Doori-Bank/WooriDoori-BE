@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 @RequiredArgsConstructor
@@ -62,6 +63,18 @@ public class CardHistoryQueryDslImpl implements CardHistoryQueryDsl {
                 .join(history.memberCard, memberCard).fetchJoin()   // memberCard 같이 가져옴
                 .where(history.id.eq(historyId))
                 .fetchOne();
+    }
+
+    @Override
+    @Transactional
+    public void updateIncludeTotal(Long historyId, boolean includeTotal) {
+        QCardHistory ch = QCardHistory.cardHistory;
+
+        queryFactory
+                .update(ch)
+                .set(ch.historyIncludeTotal, includeTotal ? "Y" : "N")
+                .where(ch.id.eq(historyId))
+                .execute();
     }
 }
 
