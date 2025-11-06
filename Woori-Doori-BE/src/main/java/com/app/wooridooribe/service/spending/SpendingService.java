@@ -10,4 +10,6 @@ public interface SpendingService {
     CardHistoryResponseDto getSpendingDetail(Long historyId);
 
     void updateIncludeTotal(Long historyId, boolean includeTotal);
+
+    void updateCategory(Long historyId, String newCategory);
 }

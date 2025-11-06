@@ -11,4 +11,6 @@ public interface CardHistoryQueryDsl {
     CardHistory findDetailById(Long historyId);
 
     void updateIncludeTotal(Long historyId, boolean includeTotal);
+
+    void updateCategory(Long historyId, String newCategory);
 }

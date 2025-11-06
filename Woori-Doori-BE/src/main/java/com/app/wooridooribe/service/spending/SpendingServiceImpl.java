@@ -60,4 +60,20 @@ public class SpendingServiceImpl implements SpendingService {
     public void updateIncludeTotal(Long historyId, boolean includeTotal) {
         cardHistoryRepository.updateIncludeTotal(historyId, includeTotal);
     }
+
+    @Override
+    @Transactional
+    public void updateCategory(Long historyId, String newCategory) {
+        if (newCategory == null || newCategory.trim().isEmpty()) {
+            throw new CustomException(ErrorCode.HISTORY_UPDATE_FAIL, ErrorCode.HISTORY_UPDATE_FAIL.getErrorMsg());
+        }
+
+        try {
+            cardHistoryRepository.updateCategory(historyId, newCategory);
+        } catch (CustomException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CustomException(ErrorCode.HISTORY_UPDATE_FAIL, ErrorCode.HISTORY_UPDATE_FAIL.getErrorMsg());
+        }
+    }
 }

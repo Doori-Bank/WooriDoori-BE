@@ -17,9 +17,6 @@ public class SpendingController {
 
     private final SpendingService spendingService;
 
-    /**
-     * 월별 소비 내역 조회
-     */
     @GetMapping
     public ResponseEntity<ApiResponse<Map<String, Object>>> getMonthlySpending(
             @RequestParam Long userId,
@@ -56,6 +53,24 @@ public class SpendingController {
 
         return ResponseEntity.ok(
                 ApiResponse.res(HttpStatus.OK.value(), message, result)
+        );
+    }
+
+    @PatchMapping("/{historyId}/category")
+    public ResponseEntity<?> updateCategory(
+            @PathVariable Long historyId,
+            @RequestBody Map<String, String> request
+    ) {
+        String newCategory = request.get("category");
+        spendingService.updateCategory(historyId, newCategory);
+
+        Map<String, Object> result = Map.of(
+                "historyId", historyId,
+                "newCategory", newCategory
+        );
+
+        return ResponseEntity.ok(
+                ApiResponse.res(HttpStatus.OK.value(), "카테고리 수정 성공", result)
         );
     }
 }

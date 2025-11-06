@@ -76,5 +76,17 @@ public class CardHistoryQueryDslImpl implements CardHistoryQueryDsl {
                 .where(ch.id.eq(historyId))
                 .execute();
     }
+
+    @Override
+    @Transactional
+    public void updateCategory(Long historyId, String newCategory) {
+        QCardHistory ch = QCardHistory.cardHistory;
+
+        queryFactory
+                .update(ch)
+                .set(ch.historyCategory, newCategory)
+                .where(ch.id.eq(historyId))
+                .execute();
+    }
 }
 
