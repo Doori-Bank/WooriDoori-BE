@@ -2,6 +2,7 @@ package com.app.wooridooribe.service.diary;
 
 import com.app.wooridooribe.controller.dto.DiaryResponseDto;
 import com.app.wooridooribe.entity.Diary;
+import com.app.wooridooribe.entity.Member;
 import com.app.wooridooribe.exception.CustomException;
 import com.app.wooridooribe.exception.ErrorCode;
 import com.app.wooridooribe.repository.diary.DiaryRepository;
@@ -31,6 +32,14 @@ public class DiaryServiceImpl implements DiaryService {
         return diaries.stream()
                 .map(DiaryResponseDto::from)
                 .toList();
+    }
+
+    @Override
+    public DiaryResponseDto getDiaryDetail(Long diaryId) {
+        Diary diary = diaryRepository.findById(diaryId)
+                .orElseThrow(() -> new CustomException(ErrorCode.DIARY_ISNULL));
+
+        return DiaryResponseDto.from(diary);
     }
 
     private void validateDate(int year, int month) {

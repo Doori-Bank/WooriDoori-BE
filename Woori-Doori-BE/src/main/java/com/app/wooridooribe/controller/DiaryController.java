@@ -38,4 +38,12 @@ public class DiaryController {
             throw new CustomException(ErrorCode.DIARY_INVALID_DATE);
         }
     }
+
+    @GetMapping("/{diaryId}")
+    public ResponseEntity<ApiResponse<DiaryResponseDto>> getDiaryDetail(
+            @PathVariable Long diaryId
+    ) {
+        DiaryResponseDto result = diaryService.getDiaryDetail(diaryId);
+        return ResponseEntity.ok(ApiResponse.res(HttpStatus.OK.value(), "소비 일기 상세 조회 성공", result));
+    }
 }

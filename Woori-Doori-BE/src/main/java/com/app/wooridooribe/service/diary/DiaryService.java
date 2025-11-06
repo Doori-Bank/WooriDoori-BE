@@ -5,4 +5,6 @@ import java.util.List;
 
 public interface DiaryService {
     List<DiaryResponseDto> getMonthlyDiaries(Long memberId, int year, int month);
+
+    DiaryResponseDto getDiaryDetail(Long diaryId);
 }
