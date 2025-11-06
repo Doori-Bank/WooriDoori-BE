@@ -48,7 +48,7 @@ public class AuthController {
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "사용 가능한 이메일")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "이미 사용 중인 이메일")
     @GetMapping("idCheck")
-    public ResponseEntity<ApiResponse<Boolean>> getMemberIdCheck(
+    public ResponseEntity<ApiResponse<Boolean>> idCheck(
             @Parameter(description = "중복 체크할 이메일", required = true)
             @RequestParam String memberId) {
         boolean isAvailable = authService.checkId(memberId);
@@ -67,8 +67,8 @@ public class AuthController {
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패")
     @GetMapping("user")
-    public ResponseEntity<ApiResponse<MemberDto>> getUserDetails(Authentication authentication) {
 
+    public ResponseEntity<ApiResponse<MemberDto>> getUserDetails(Authentication authentication) {
         MemberDetail principal = (MemberDetail) authentication.getPrincipal();
         
         MemberDto memberDto = MemberDto.builder()
@@ -113,7 +113,6 @@ public class AuthController {
     
     @Operation(summary = "로그아웃", description = "Refresh Token을 삭제하여 로그아웃 처리합니다")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "로그아웃 성공")
-    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패")
     @PostMapping("logout")
     public ResponseEntity<ApiResponse<Void>> logout(Authentication authentication) {
         

@@ -69,6 +69,7 @@ public class AuthServiceImpl implements AuthService {
             // ✅ 5. 자동 로그인
             return login(joinDto.getId(), joinDto.getPassword());
 
+
         } catch (CustomException e) {
             throw e; // 이미 정의된 예외는 그대로 던짐
         } catch (Exception e) {
@@ -95,7 +96,7 @@ public class AuthServiceImpl implements AuthService {
         if (foundMember.isPresent()) {
             throw new CustomException(ErrorCode.DUPLICATE_LOGIN_ID);
         }
-        // 사용 가능한 ID
+        // 사용 가능한 IDw
         return true;
     }
 
