@@ -4,6 +4,7 @@ import com.app.wooridooribe.controller.dto.ApiResponse;
 import com.app.wooridooribe.controller.dto.DiaryCreateRequestDto;
 import com.app.wooridooribe.controller.dto.DiaryCreateResponseDto;
 import com.app.wooridooribe.controller.dto.DiaryResponseDto;
+import com.app.wooridooribe.controller.dto.DiaryUpdateRequestDto;
 import com.app.wooridooribe.jwt.MemberDetail;
 import com.app.wooridooribe.service.diary.DiaryService;
 import java.time.LocalDate;
@@ -23,6 +24,7 @@ public class DiaryController {
 
     private final DiaryService diaryService;
 
+    /** 소비 일기 전체 조회 */
     @GetMapping
     public ResponseEntity<ApiResponse<List<DiaryResponseDto>>> getMonthlyDiaries(
             Authentication authentication,
@@ -39,6 +41,7 @@ public class DiaryController {
         );
     }
 
+    /** 소비 일기 상세 조회 */
     @GetMapping("/{diaryId}")
     public ResponseEntity<ApiResponse<DiaryResponseDto>> getDiaryDetail(
             Authentication authentication,
@@ -53,6 +56,7 @@ public class DiaryController {
         );
     }
 
+    /** 소비 일기 입력 */
     @PostMapping("InsertDiary")
     public ResponseEntity<ApiResponse<DiaryCreateResponseDto>> createDiary(
             Authentication authentication,
@@ -63,5 +67,21 @@ public class DiaryController {
 
         DiaryCreateResponseDto response = diaryService.createDiary(memberId, request);
         return ResponseEntity.ok(ApiResponse.res(HttpStatus.OK.value(), "소비 일기 작성 성공", response));
+    }
+
+    /** 소비 일기 수정 */
+    @PutMapping("/updateDiary/{diaryId}")
+    public ResponseEntity<ApiResponse<DiaryResponseDto>> updateDiary(
+            Authentication authentication,
+            @PathVariable Long diaryId,
+            @RequestBody DiaryUpdateRequestDto request
+    ) {
+        MemberDetail principal = (MemberDetail) authentication.getPrincipal();
+        Long memberId = principal.getId();
+
+        DiaryResponseDto result = diaryService.updateDiary(diaryId, memberId, request);
+        return ResponseEntity.ok(
+                ApiResponse.res(HttpStatus.OK.value(), "소비 일기 수정 성공", result)
+        );
     }
 }

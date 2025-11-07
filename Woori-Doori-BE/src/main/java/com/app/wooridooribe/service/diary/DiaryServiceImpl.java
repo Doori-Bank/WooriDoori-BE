@@ -3,6 +3,7 @@ package com.app.wooridooribe.service.diary;
 import com.app.wooridooribe.controller.dto.DiaryCreateRequestDto;
 import com.app.wooridooribe.controller.dto.DiaryCreateResponseDto;
 import com.app.wooridooribe.controller.dto.DiaryResponseDto;
+import com.app.wooridooribe.controller.dto.DiaryUpdateRequestDto;
 import com.app.wooridooribe.entity.Diary;
 import com.app.wooridooribe.entity.Member;
 import com.app.wooridooribe.exception.CustomException;
@@ -118,6 +119,36 @@ public class DiaryServiceImpl implements DiaryService {
         }
         if (!memberId.equals(diary.getMember().getId())) {
             throw new CustomException(ErrorCode.DIARY_ISNOTYOURS);
+        }
+    }
+
+    @Override
+    @Transactional
+    public DiaryResponseDto updateDiary(Long diaryId, Long memberId, DiaryUpdateRequestDto request) {
+        Diary diary = diaryRepository.findById(diaryId)
+                .orElseThrow(() -> new CustomException(ErrorCode.DIARY_ISNULL));
+
+        if (!diary.getMember().getId().equals(memberId)) {
+            throw new CustomException(ErrorCode.DIARY_ISNOTYOURS);
+        }
+
+        if (request == null ||
+                ((request.getDiaryEmotion() == null || request.getDiaryEmotion().isBlank()) &&
+                        (request.getDiaryContent() == null || request.getDiaryContent().isBlank()))) {
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+
+        try {
+            if (request.getDiaryEmotion() != null && !request.getDiaryEmotion().isBlank()) {
+                diary.setDiaryEmotion(request.getDiaryEmotion());
+            }
+            if (request.getDiaryContent() != null && !request.getDiaryContent().isBlank()) {
+                diary.setDiaryContent(request.getDiaryContent());
+            }
+            // @Transactional 이므로 flush 시 업데이트 반영
+            return DiaryResponseDto.from(diary);
+        } catch (Exception e) {
+            throw new CustomException(ErrorCode.DIARY_UPDATE_FAIL);
         }
     }
 }
