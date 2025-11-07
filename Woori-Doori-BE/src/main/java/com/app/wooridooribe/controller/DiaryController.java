@@ -96,7 +96,7 @@ public class DiaryController {
 
         diaryService.deleteDiary(diaryId, memberId);
         return ResponseEntity.ok(
-                ApiResponse.res(HttpStatus.OK.value(), "소비 일기 삭제 성공", null)
+                ApiResponse.res(HttpStatus.OK.value(), "소비 일기 삭제 성공")
         );
     }
 
