@@ -6,6 +6,7 @@ import com.app.wooridooribe.controller.dto.DiaryResponseDto;
 import com.app.wooridooribe.controller.dto.DiaryUpdateRequestDto;
 import com.app.wooridooribe.entity.Diary;
 import com.app.wooridooribe.entity.Member;
+import com.app.wooridooribe.entity.type.EmotionType;
 import com.app.wooridooribe.exception.CustomException;
 import com.app.wooridooribe.exception.ErrorCode;
 import com.app.wooridooribe.repository.diary.DiaryRepository;
@@ -103,9 +104,9 @@ public class DiaryServiceImpl implements DiaryService {
         if (request == null || request.getDiaryDay() == null) {
             throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
         }
-        String emotion = request.getDiaryEmotion();
+        EmotionType emotion = request.getDiaryEmotion();
         String content = request.getDiaryContent();
-        if (emotion == null || emotion.isBlank() || content == null || content.isBlank()) {
+        if (emotion == null || content == null || content.isBlank()) {
             throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
         }
 
@@ -123,13 +124,13 @@ public class DiaryServiceImpl implements DiaryService {
         }
 
         if (request == null ||
-                ((request.getDiaryEmotion() == null || request.getDiaryEmotion().isBlank()) &&
+                ((request.getDiaryEmotion() == null) &&
                         (request.getDiaryContent() == null || request.getDiaryContent().isBlank()))) {
             throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
         }
 
         try {
-            if (request.getDiaryEmotion() != null && !request.getDiaryEmotion().isBlank()) {
+            if (request.getDiaryEmotion() != null) {
                 diary.setDiaryEmotion(request.getDiaryEmotion());
             }
             if (request.getDiaryContent() != null && !request.getDiaryContent().isBlank()) {

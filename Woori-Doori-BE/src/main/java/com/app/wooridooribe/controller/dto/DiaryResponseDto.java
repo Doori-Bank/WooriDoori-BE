@@ -1,6 +1,7 @@
 package com.app.wooridooribe.controller.dto;
 
 import com.app.wooridooribe.entity.Diary;
+import com.app.wooridooribe.entity.type.EmotionType;
 import lombok.*;
 
 import java.time.LocalDate;
@@ -13,7 +14,7 @@ public class DiaryResponseDto {
 
     private Long diaryId;
     private LocalDate diaryDay;
-    private String diaryEmotion;
+    private EmotionType diaryEmotion;
     private String diaryContent;
 
     public static DiaryResponseDto from(Diary diary) {
