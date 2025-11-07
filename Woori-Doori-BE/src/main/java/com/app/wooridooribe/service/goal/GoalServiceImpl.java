@@ -23,59 +23,53 @@ public class GoalServiceImpl implements GoalService {
 
     @Override
     public GoalDto setGoal(GoalDto goalDto) {
+
+        // ✅ 1. 입력값 검증
+        if (goalDto.getGoalIncome() == null || goalDto.getGoalIncome().isEmpty()) {
+            throw new CustomException(ErrorCode.GOAL_INVALIDVALUE);
+        }
+        if (goalDto.getPreviousGoalMoney() == null) {
+            throw new CustomException(ErrorCode.GOAL_INVALIDVALUE);
+        }
+
+        // ✅ 2. Member 존재 여부 확인
+        Member member = memberRepository.findById(goalDto.getMemberId())
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+        // ✅ 3. 논리 검증 - 수입보다 목표소비금액이 클 경우
         try {
-            // 1️⃣ 입력값 검증
-            if (goalDto.getGoalIncome() == null || goalDto.getGoalIncome().isEmpty()) {
-                throw new CustomException(ErrorCode.GOAL_INVALIDVALUE);
-            }
-            if (goalDto.getPreviousGoalMoney() == null) {
+            int income = Integer.parseInt(goalDto.getGoalIncome());
+            if (income < goalDto.getPreviousGoalMoney()) {
                 throw new CustomException(ErrorCode.GOAL_INVALIDNUM);
             }
-
-            // Member 엔티티 조회
-            Member member = memberRepository.findById(goalDto.getMemberId())
-                    .orElseThrow(() ->  new CustomException(ErrorCode.INVALID_USER));
-
-            // 수입보다 소비금액이 큰 경우
-            try {
-                int income = Integer.parseInt(goalDto.getGoalIncome());
-                if (income < goalDto.getPreviousGoalMoney()) {
-                    throw new CustomException(ErrorCode.GOAL_INVALIDVALUE);
-                }
-            } catch (NumberFormatException e) {
-                throw new CustomException(ErrorCode.GOAL_INVALIDVALUE);
-            }
-
-            // Goal 엔티티 생성 및 저장
-            Goal goal = Goal.builder()
-                    .member(member)
-                    .goalStartDate(goalDto.getGoalStartDate() != null ? goalDto.getGoalStartDate() : LocalDate.now())
-                    .previousGoalMoney(goalDto.getPreviousGoalMoney())
-                    .goalJob(goalDto.getGoalJob())
-                    .goalIncome(goalDto.getGoalIncome())
-                    .goalScore(goalDto.getGoalScore())
-                    .goalComment(goalDto.getGoalComment())
-                    .build();
-
-            Goal savedGoal = goalRepository.save(goal);
-
-            // 반환용 DTO 변환
-            return GoalDto.builder()
-                    .goalId(savedGoal.getId())
-                    .memberId(member.getId())
-                    .goalStartDate(savedGoal.getGoalStartDate())
-                    .previousGoalMoney(savedGoal.getPreviousGoalMoney())
-                    .goalScore(savedGoal.getGoalScore())
-                    .goalComment(savedGoal.getGoalComment())
-                    .goalJob(savedGoal.getGoalJob())
-                    .goalIncome(savedGoal.getGoalIncome())
-                    .build();
-
-        } catch (IllegalArgumentException e) {
-            // 서비스 내에서 의미 있는 예외를 잡아서 다시 던짐
-            throw new RuntimeException("목표 설정 실패: " + e.getMessage(), e);
-        } catch (Exception e) {
-            throw new RuntimeException("서버 내부 오류로 인해 목표 설정에 실패했습니다.", e);
+        } catch (NumberFormatException e) {
+            throw new CustomException(ErrorCode.GOAL_INVALIDVALUE);
         }
+
+        // ✅ 4. Goal 엔티티 생성
+        Goal goal = Goal.builder()
+                .member(member)
+                .goalStartDate(goalDto.getGoalStartDate() != null ? goalDto.getGoalStartDate() : LocalDate.now())
+                .previousGoalMoney(goalDto.getPreviousGoalMoney())
+                .goalJob(goalDto.getGoalJob())
+                .goalIncome(goalDto.getGoalIncome())
+                .goalScore(goalDto.getGoalScore())
+                .goalComment(goalDto.getGoalComment())
+                .build();
+
+        // ✅ 5. DB 저장
+        Goal savedGoal = goalRepository.save(goal);
+
+        // ✅ 6. DTO 변환 후 반환
+        return GoalDto.builder()
+                .goalId(savedGoal.getId())
+                .memberId(member.getId())
+                .goalStartDate(savedGoal.getGoalStartDate())
+                .previousGoalMoney(savedGoal.getPreviousGoalMoney())
+                .goalScore(savedGoal.getGoalScore())
+                .goalComment(savedGoal.getGoalComment())
+                .goalJob(savedGoal.getGoalJob())
+                .goalIncome(savedGoal.getGoalIncome())
+                .build();
     }
 }
