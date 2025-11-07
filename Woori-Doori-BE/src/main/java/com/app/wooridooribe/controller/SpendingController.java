@@ -30,7 +30,7 @@ public class SpendingController {
         Long memberId = principal.getId();
 
         Map<String, Object> result = spendingService.getMonthlySpendings(memberId, targetDate);
-        return ResponseEntity.ok(ApiResponse.res(HttpStatus.OK.value(), "소비 내역 조회 성공", result));
+        return ResponseEntity.ok(ApiResponse.res(HttpStatus.OK.value(), "조회에 성공하였습니다", result));
     }
 
     @GetMapping("/detail/{historyId}")
@@ -42,7 +42,7 @@ public class SpendingController {
         Long memberId = principal.getId();
 
         CardHistoryResponseDto result = spendingService.getSpendingDetail(historyId, memberId);
-        return ResponseEntity.ok(ApiResponse.res(HttpStatus.OK.value(), "소비 내역 상세 조회 성공", result));
+        return ResponseEntity.ok(ApiResponse.res(HttpStatus.OK.value(), "상세 내역 조회에 성공하였습니다", result));
     }
 
     @PatchMapping("/{historyId}/{includeInTotal}")
@@ -62,8 +62,8 @@ public class SpendingController {
         );
 
         String message = includeInTotal
-                ? "지출 합계에 포함되었습니다."
-                : "지출 합계에서 제외되었습니다.";
+                ? "지출 합계에 포함되었습니다"
+                : "지출 합계에서 제외되었습니다";
 
         return ResponseEntity.ok(ApiResponse.res(HttpStatus.OK.value(), message, result));
     }
@@ -85,7 +85,7 @@ public class SpendingController {
                 "newCategory", newCategory
         );
 
-        return ResponseEntity.ok(ApiResponse.res(HttpStatus.OK.value(), "카테고리 수정 성공", result));
+        return ResponseEntity.ok(ApiResponse.res(HttpStatus.OK.value(), "성공적으로 수정이 완료되었습니다", result));
     }
 
     @PatchMapping("/{historyId}/dutchpay")
@@ -105,7 +105,7 @@ public class SpendingController {
                 "newDutchpayCount", count
         );
 
-        return ResponseEntity.ok(ApiResponse.res(HttpStatus.OK.value(), "더치페이 인원 수정 성공", result));
+        return ResponseEntity.ok(ApiResponse.res(HttpStatus.OK.value(), "성공적으로 수정이 완료되었습니다", result));
     }
 
     @PatchMapping("/{historyId}/price")
@@ -125,7 +125,7 @@ public class SpendingController {
                 "newPrice", price
         );
 
-        return ResponseEntity.ok(ApiResponse.res(HttpStatus.OK.value(), "결제 금액 수정 성공", result));
+        return ResponseEntity.ok(ApiResponse.res(HttpStatus.OK.value(), "성공적으로 수정이 완료되었습니다", result));
     }
 
 }

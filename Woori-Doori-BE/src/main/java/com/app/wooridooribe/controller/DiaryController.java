@@ -37,7 +37,7 @@ public class DiaryController {
         List<DiaryResponseDto> result = diaryService.getMonthlyDiaries(memberId, targetDate);
 
         return ResponseEntity.ok(
-                ApiResponse.res(HttpStatus.OK.value(), "소비 일기 전체 조회 성공", result)
+                ApiResponse.res(HttpStatus.OK.value(), "조회에 성공하였습니다", result)
         );
     }
 
@@ -52,7 +52,7 @@ public class DiaryController {
 
         DiaryResponseDto result = diaryService.getDiaryDetail(diaryId, memberId);
         return ResponseEntity.ok(
-                ApiResponse.res(HttpStatus.OK.value(), "소비 일기 상세 조회 성공", result)
+                ApiResponse.res(HttpStatus.OK.value(), "상세 내역 조회에 성공하였습니다", result)
         );
     }
 
@@ -66,7 +66,7 @@ public class DiaryController {
         Long memberId = principal.getId();
 
         DiaryCreateResponseDto response = diaryService.createDiary(memberId, request);
-        return ResponseEntity.ok(ApiResponse.res(HttpStatus.OK.value(), "소비 일기 작성 성공", response));
+        return ResponseEntity.ok(ApiResponse.res(HttpStatus.OK.value(), "소비일기 입력을 성공하였습니다", response));
     }
 
     /** 소비 일기 수정 */
@@ -81,7 +81,7 @@ public class DiaryController {
 
         DiaryResponseDto result = diaryService.updateDiary(diaryId, memberId, request);
         return ResponseEntity.ok(
-                ApiResponse.res(HttpStatus.OK.value(), "소비 일기 수정 성공", result)
+                ApiResponse.res(HttpStatus.OK.value(), "일기를 성공적으로 수정했습니다", result)
         );
     }
 
@@ -96,7 +96,7 @@ public class DiaryController {
 
         diaryService.deleteDiary(diaryId, memberId);
         return ResponseEntity.ok(
-                ApiResponse.res(HttpStatus.OK.value(), "소비 일기 삭제 성공")
+                ApiResponse.res(HttpStatus.OK.value(), "일기를 성공적으로 삭제했습니다")
         );
     }
 
