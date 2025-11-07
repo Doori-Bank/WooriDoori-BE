@@ -1,6 +1,8 @@
 package com.app.wooridooribe.jwt;
 
 import com.app.wooridooribe.controller.dto.TokenDto;
+import com.app.wooridooribe.exception.CustomException;
+import com.app.wooridooribe.exception.ErrorCode;
 import com.app.wooridooribe.service.MemberDetailService;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
@@ -22,7 +24,7 @@ public class TokenProvider {
 
     private static final String AUTHORITIES_KEY = "auth";
     private static final String BEARER_TYPE = "Bearer";
-    private static final long ACCESS_TOKEN_EXPIRE_TIME = 1000 * 60 * 30;            // 30분
+    private static final long ACCESS_TOKEN_EXPIRE_TIME = 1000 * 60 * 3000;            // 30분
     private static final long REFRESH_TOKEN_EXPIRE_TIME = 1000 * 60 * 60 * 24 * 7;  // 7일
     private final MemberDetailService memberDetailService;
     private final Key key;
@@ -86,23 +88,41 @@ public class TokenProvider {
 
 
 
-    public boolean validateToken(String token) {
+    /**
+     * 토큰 검증 - 실패 시 바로 예외 던짐
+     * @throws CustomException 토큰이 유효하지 않은 경우
+     */
+    public void validateToken(String token) {
         try {
             Jwts.parser()
                     .verifyWith((javax.crypto.SecretKey) key)
                     .build()
                     .parseSignedClaims(token);
-            return true;
-        } catch (io.jsonwebtoken.security.SecurityException | MalformedJwtException e) {
-            log.info("잘못된 JWT 서명입니다.");
         } catch (ExpiredJwtException e) {
             log.info("만료된 JWT 토큰입니다.");
+            throw new CustomException(ErrorCode.TOKEN_EXPIRED);
+        } catch (io.jsonwebtoken.security.SecurityException | MalformedJwtException e) {
+            log.info("잘못된 JWT 서명입니다.");
+            throw new CustomException(ErrorCode.INVALID_TOKEN);
         } catch (UnsupportedJwtException e) {
             log.info("지원되지 않는 JWT 토큰입니다.");
+            throw new CustomException(ErrorCode.INVALID_TOKEN);
         } catch (IllegalArgumentException e) {
             log.info("JWT 토큰이 잘못되었습니다.");
+            throw new CustomException(ErrorCode.INVALID_TOKEN);
         }
-        return false;
+    }
+    
+    /**
+     * 토큰 검증 (boolean 반환) - Filter에서 사용
+     */
+    public boolean isTokenValid(String token) {
+        try {
+            validateToken(token);
+            return true;
+        } catch (CustomException e) {
+            return false;
+        }
     }
 
     private Claims parseClaims(String accessToken) {
@@ -114,6 +134,10 @@ public class TokenProvider {
                     .getPayload();
         } catch (ExpiredJwtException e) {
             return e.getClaims();
+        } catch (JwtException e) {
+            // 서명 오류, 형식 오류 등
+            log.error("토큰 파싱 실패: {}", e.getMessage());
+            throw e;  // JwtFilter에서 잡히도록 다시 던짐
         }
     }
 }

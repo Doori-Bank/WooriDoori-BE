@@ -60,6 +60,7 @@ public class SecurityConfig {
                         .requestMatchers("/test/**").permitAll() // 테스트용 경로 (배포 전 삭제 필요!)
                         .requestMatchers("/ws/**").permitAll() // WebSocket 경로 허용
                         .requestMatchers("/files/**").permitAll() // 파일 경로 허용
+                        .requestMatchers("/swagger-ui.html","/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**").permitAll() // Swagger UI
                         .requestMatchers("/member/**").hasRole("USER") // 나머지 회원 경로는 USER 권한 필요
                         .requestMatchers("/admin/**").hasRole("ADMIN") // 관리자 경로는 ADMIN 권한 필요
                         .anyRequest().authenticated() // 나머지는 인증 필요

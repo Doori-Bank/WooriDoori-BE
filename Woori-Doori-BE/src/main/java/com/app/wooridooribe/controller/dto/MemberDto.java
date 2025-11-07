@@ -13,11 +13,7 @@ import lombok.*;
 public class MemberDto {
     private String memberId;
     private String name;
-    private String email;
-    private String password;
     private String phone;
     private String birthDate;
     private String birthBack;
-    private Authority authority;
-    private String profileUrl;
 }

@@ -34,7 +34,8 @@ public class CardHistory {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "history_status", nullable = false)
-    private StatusType historyStatus;
+    @Enumerated(EnumType.STRING)
+    private StatusType historyStatus; // 결제상태 (ABLE/UNABLE)
 
     @Column(name = "history_category", nullable = false)
     private String historyCategory; // 카테고리

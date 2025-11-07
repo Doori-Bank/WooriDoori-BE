@@ -45,14 +45,16 @@ public class GlobalExceptionHandler {
         
         log.error("Exception: {}", ex.getMessage(), ex);
         
+        ErrorCode errorCode = ErrorCode.INTERNAL_SERVER_ERROR;
+        
         ApiResponse<Void> response = ApiResponse.error(
-                500,
-                "INTERNAL_SERVER_ERROR",
-                "서버 내부 오류가 발생했습니다."
+                errorCode.getStatusCode().value(),
+                errorCode.name(),
+                errorCode.getErrorMsg()
         );
         
         return ResponseEntity
-                .status(500)
+                .status(errorCode.getStatusCode())
                 .body(response);
     }
 }

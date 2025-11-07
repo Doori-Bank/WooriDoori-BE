@@ -8,6 +8,13 @@ import org.springframework.http.HttpStatus;
 @AllArgsConstructor
 public enum ErrorCode {
     
+    // 공통 에러
+    NO_TOKEN(HttpStatus.UNAUTHORIZED, "COMMON-001", "로그인을 해주세요"),
+    TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "COMMON-002", "토큰값이 만료되었습니다"),
+    INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "COMMON-003", "토큰이 유효하지않습니다"),
+    INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "COMMON-004", "서버가 점검중입니다"),
+    INVALID_MEMBER(HttpStatus.FORBIDDEN, "COMMON-005", "비활성화된 계정입니다"),
+    
     // 회원 관리 - 본인 인증
     AUTH_FAIL(HttpStatus.BAD_REQUEST, "ACCOUNT-001", "인증 번호가 일치하지 않습니다."),
     TIME_OUT(HttpStatus.REQUEST_TIMEOUT, "ACCOUNT-002", "인증 시간이 초과되었습니다. 다시 인증을 시도해주세요."),
@@ -16,7 +23,6 @@ public enum ErrorCode {
     
     // 회원 관리 - 회원 가입
     DUPLICATE_LOGIN_ID(HttpStatus.CONFLICT, "ACCOUNT-005", "이미 사용 중인 이메일이 있습니다."),
-    INVALID_PASSWORD(HttpStatus.BAD_REQUEST, "ACCOUNT-006", "비밀번호가 동일하지 않습니다."),
     REQUIRED_MISSING(HttpStatus.BAD_REQUEST, "ACCOUNT-007", "필수 요소가 입력되지 않았습니다."),
     INVALID_FORMAT(HttpStatus.BAD_REQUEST, "ACCOUNT-008", "형식에 맞지 않는 입력입니다."),
     SIGNIN_FAIL(HttpStatus.INTERNAL_SERVER_ERROR, "ACCOUNT-009", "회원가입에 실패하였습니다."),
@@ -34,6 +40,7 @@ public enum ErrorCode {
     TEMP_PASSWORD_GEN_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "ACCOUNT-015", "임시 비밀번호 생성에 실패했습니다."),
     TEMP_PASSWORD_INCORRECT(HttpStatus.INTERNAL_SERVER_ERROR, "ACCOUNT-016", "부여한 임시 비밀번호와 일치하지 않습니다."),
     UPDATE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "ACCOUNT-017", "임시 비밀번호 저장이 실패했습니다."),
+    SAME_PASSWORD(HttpStatus.BAD_REQUEST, "ACCOUNT-020", "새 비밀번호가 기존 비밀번호와 동일합니다."),
     
     // 회원 관리 - 로그아웃
     DATA_ACCESS_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "ACCOUNT-018", "로그아웃 처리가 불가합니다."),
@@ -79,8 +86,13 @@ public enum ErrorCode {
     // 목표
     GOAL_INVALIDNUM(HttpStatus.BAD_REQUEST, "GOAL-002", "목표치가 올바르지 않습니다."),
     GOAL_ISNOTYOURS(HttpStatus.FORBIDDEN, "GOAL-003", "해당 달성도는 조회가 불가합니다."),
-    GOAL_ISNULL(HttpStatus.NOT_FOUND, "GOAL-004", "해당 달성도는 존재하지 않습니다.");
-    
+    GOAL_ISNULL(HttpStatus.NOT_FOUND, "GOAL-004", "해당 달성도는 존재하지 않습니다."),
+
+    // 메일
+    MAIL_NOTFOUND(HttpStatus.BAD_REQUEST, "MAIL-001","이메일을 찾을 수 없습니다");
+
+
+
     private final HttpStatus statusCode;
     private final String errorCode;
     private final String errorMsg;

@@ -2,22 +2,30 @@ package com.app.wooridooribe.controller.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
+@Schema(description = "공통 API 응답 형식")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)  // null 필드는 JSON에서 제외
 public class ApiResponse<T> {
+    
+    @Schema(description = "HTTP 상태 코드", example = "200")
     private Integer statusCode;
     
+    @Schema(description = "응답 메시지 (성공 시)", example = "SUCCESS")
     private String resultMsg;
     
+    @Schema(description = "에러 메시지 (실패 시)", example = "비밀번호가 틀립니다")
     private String errorResultMsg;
     
+    @Schema(description = "에러 코드명 (실패 시)", example = "INVALID_CREDENTIALS")
     private String errorName;
     
+    @Schema(description = "응답 데이터 (성공 시)")
     private T resultData;
 
     // 성공 응답 생성자
