@@ -26,27 +26,27 @@ public class GoalServiceImpl implements GoalService {
         try {
             // 1️⃣ 입력값 검증
             if (goalDto.getGoalIncome() == null || goalDto.getGoalIncome().isEmpty()) {
-                throw new IllegalArgumentException("수입(goalIncome)이 입력되지 않았습니다.");
+                throw new CustomException(ErrorCode.GOAL_INVALIDVALUE);
             }
             if (goalDto.getPreviousGoalMoney() == null) {
                 throw new CustomException(ErrorCode.GOAL_INVALIDNUM);
             }
 
-            // 2️⃣ memberId 기반으로 Member 엔티티 조회
+            // Member 엔티티 조회
             Member member = memberRepository.findById(goalDto.getMemberId())
                     .orElseThrow(() ->  new CustomException(ErrorCode.INVALID_USER));
 
-            // 3️⃣ 논리적 검증 — 수입보다 소비금액이 큰 경우
+            // 수입보다 소비금액이 큰 경우
             try {
                 int income = Integer.parseInt(goalDto.getGoalIncome());
                 if (income < goalDto.getPreviousGoalMoney()) {
-                    throw new IllegalArgumentException("목표 소비금액은 수입보다 클 수 없습니다.");
+                    throw new CustomException(ErrorCode.GOAL_INVALIDVALUE);
                 }
             } catch (NumberFormatException e) {
-                throw new IllegalArgumentException("수입(goalIncome)은 숫자 형식이어야 합니다.");
+                throw new CustomException(ErrorCode.GOAL_INVALIDVALUE);
             }
 
-            // 4️⃣ Goal 엔티티 생성 및 저장
+            // Goal 엔티티 생성 및 저장
             Goal goal = Goal.builder()
                     .member(member)
                     .goalStartDate(goalDto.getGoalStartDate() != null ? goalDto.getGoalStartDate() : LocalDate.now())
@@ -59,7 +59,7 @@ public class GoalServiceImpl implements GoalService {
 
             Goal savedGoal = goalRepository.save(goal);
 
-            // 5️⃣ 반환용 DTO 변환
+            // 반환용 DTO 변환
             return GoalDto.builder()
                     .goalId(savedGoal.getId())
                     .memberId(member.getId())
