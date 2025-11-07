@@ -8,7 +8,7 @@ import com.app.wooridooribe.jwt.MemberDetail;
 
 
 public interface GoalService {
-    GoalDto setGoal(GoalDto goalDto);
+    SetGoalDto setGoal(Long memberId, SetGoalDto setGoalDto);
 
-    //GoalDto getGoalDetail(Long goalId);
+    //GoalDto getGoalHistory(Long goalId);
 }
