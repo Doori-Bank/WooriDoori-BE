@@ -1,6 +1,8 @@
 package com.app.wooridooribe.service.card;
 
 import com.app.wooridooribe.controller.dto.CardCreateRequestDto;
+import com.app.wooridooribe.controller.dto.CardDeleteRequestDto;
+import com.app.wooridooribe.controller.dto.CardEditRequestDto;
 import com.app.wooridooribe.controller.dto.CardResponseDto;
 import com.app.wooridooribe.controller.dto.UserCardResponseDto;
 import com.app.wooridooribe.entity.Card;
@@ -102,15 +104,22 @@ public class CardServiceImpl implements CardService {
             log.info("MemberCard member_id 업데이트 - memberCardId: {}, memberId: {}, updatedRows: {}",
                     memberCard.getId(), memberId, updatedRows);
 
-            // card_alias 업데이트
-            if (request.getCardAlias() != null && !request.getCardAlias().isEmpty()) {
-                memberCard.setCardAlias(request.getCardAlias());
-                memberCardRepository.saveAndFlush(memberCard);
+            if (updatedRows == 0) {
+                log.warn("member_id 업데이트 실패 - memberCardId: {}, memberId: {}", memberCard.getId(), memberId);
             }
 
-            // 저장 후 다시 조회하여 최신 상태 가져오기
-            memberCard = memberCardRepository.findByMemberIdAndCardNum(memberId, request.getCardNum())
-                    .orElse(memberCard);
+            // card_alias 업데이트
+            if (request.getCardAlias() != null && !request.getCardAlias().isEmpty()) {
+                // UPDATE 쿼리 후 영속성 컨텍스트를 clear했으므로 다시 조회
+                memberCard = memberCardRepository.findByMemberIdAndCardNum(memberId, request.getCardNum())
+                        .orElseThrow(() -> new CustomException(ErrorCode.CARD_ISNULL));
+                memberCard.setCardAlias(request.getCardAlias());
+                memberCardRepository.saveAndFlush(memberCard);
+            } else {
+                // card_alias 업데이트가 없어도 member_id 업데이트 후 다시 조회
+                memberCard = memberCardRepository.findByMemberIdAndCardNum(memberId, request.getCardNum())
+                        .orElseThrow(() -> new CustomException(ErrorCode.CARD_ISNULL));
+            }
 
             log.info("최종 조회 후 - memberCard member: {}",
                     memberCard.getMember() != null ? memberCard.getMember().getId() : "null");
@@ -120,5 +129,53 @@ public class CardServiceImpl implements CardService {
         }
 
         return UserCardResponseDto.from(memberCard);
+    }
+
+    @Override
+    @Transactional
+    public void deleteCard(Long memberId, CardDeleteRequestDto request) {
+        // 해당 사용자의 카드 찾기 (id와 memberId로 검증)
+        Optional<MemberCard> memberCard = memberCardRepository.findById(request.getId());
+
+        if (memberCard.isEmpty()) {
+            throw new CustomException(ErrorCode.CARD_ISNULL);
+        }
+
+        // 본인의 카드인지 확인
+        if (memberCard.get().getMember() == null || !memberCard.get().getMember().getId().equals(memberId)) {
+            throw new CustomException(ErrorCode.CARD_ISNOTYOURS);
+        }
+
+        // member_id를 NULL로 설정 (화면에서만 삭제, DB에는 남아있음)
+        int updatedRows = memberCardRepository.deleteMemberId(request.getId(), memberId);
+
+        if (updatedRows == 0) {
+            throw new CustomException(ErrorCode.CARD_ISNOTYOURS);
+        }
+
+        log.info("카드 삭제 완료 - memberCardId: {}, memberId: {}", request.getId(), memberId);
+    }
+
+    @Override
+    @Transactional
+    public void editCardAlias(Long memberId, CardEditRequestDto request) {
+        // member_id가 등록되어 있는 카드 찾기 (id로 조회)
+        Optional<MemberCard> memberCard = memberCardRepository.findById(request.getId());
+
+        if (memberCard.isEmpty()) {
+            throw new CustomException(ErrorCode.CARD_ISNULL);
+        }
+
+        // 본인의 카드인지 확인
+        if (memberCard.get().getMember() == null || !memberCard.get().getMember().getId().equals(memberId)) {
+            throw new CustomException(ErrorCode.CARD_ISNOTYOURS);
+        }
+
+        // card_alias 업데이트
+        memberCard.get().setCardAlias(request.getCardAlias());
+        memberCardRepository.saveAndFlush(memberCard.get());
+
+        log.info("카드 별명 수정 완료 - memberCardId: {}, memberId: {}, cardAlias: {}",
+                request.getId(), memberId, request.getCardAlias());
     }
 }

@@ -23,7 +23,11 @@ public interface MemberCardRepository extends JpaRepository<MemberCard, Long> {
     @Query("SELECT mc FROM MemberCard mc JOIN FETCH mc.card c LEFT JOIN FETCH c.cardImage WHERE mc.cardNum = :cardNum")
     java.util.Optional<MemberCard> findByCardNum(@Param("cardNum") String cardNum);
 
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Query(value = "UPDATE tbl_member_card SET member_id = :memberId WHERE id = :memberCardId", nativeQuery = true)
     int updateMemberId(@Param("memberCardId") Long memberCardId, @Param("memberId") Long memberId);
+
+    @Modifying
+    @Query(value = "UPDATE tbl_member_card SET member_id = NULL WHERE id = :memberCardId AND member_id = :memberId", nativeQuery = true)
+    int deleteMemberId(@Param("memberCardId") Long memberCardId, @Param("memberId") Long memberId);
 }
