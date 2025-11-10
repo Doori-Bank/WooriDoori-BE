@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -28,9 +29,6 @@ public class GoalServiceImpl implements GoalService {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
-        LocalDate thisMonth = LocalDate.now().withDayOfMonth(1);
-        LocalDate nextMonth = thisMonth.plusMonths(1);
-
         if (setGoalDto == null ||
                 setGoalDto.getGoalJob() == null ||
                 setGoalDto.getGoalIncome() == null ||
@@ -44,28 +42,33 @@ public class GoalServiceImpl implements GoalService {
             throw new CustomException(ErrorCode.GOAL_INVALIDNUM);
         }
 
-        // 이번 달, 다음 달 목표 조회
-        Optional<Goal> thisMonthGoalOpt = goalRepository.findByMemberAndGoalStartDate(member, thisMonth);
-        Optional<Goal> nextMonthGoalOpt = goalRepository.findByMemberAndGoalStartDate(member, nextMonth);
+        //이번 달과 다음 달 목표 조회 (QueryDSL)
+        List<Goal> goals = goalRepository.findGoalsForThisAndNextMonth(member);
+        LocalDate thisMonth = LocalDate.now().withDayOfMonth(1);
+        LocalDate nextMonth = thisMonth.plusMonths(1);
 
-        boolean thisMonthExists = thisMonthGoalOpt.isPresent();
-        boolean nextMonthExists = nextMonthGoalOpt.isPresent();
+        boolean thisMonthGoalExists = goals.stream()
+                .anyMatch(g -> g.getGoalStartDate().equals(thisMonth));
+        boolean nextMonthGoalExists = goals.stream()
+                .anyMatch(g -> g.getGoalStartDate().equals(nextMonth));
 
-        Goal goal;           // 저장 또는 수정될 목표 객체
-        LocalDate goalMonth = null;
-
-
-        if (thisMonthGoalOpt.isEmpty()) {
-            goalMonth = thisMonth;
-
-        } else if (nextMonthGoalOpt.isEmpty()) {
-            goalMonth = nextMonth;
-        }
-
-        if (goalMonth != null) {
+        Goal goal;
+        if (!thisMonthGoalExists) {
+            // 이번 달 목표 등록
             goal = Goal.builder()
                     .member(member)
-                    .goalStartDate(goalMonth)
+                    .goalStartDate(thisMonth)
+                    .previousGoalMoney(setGoalDto.getPreviousGoalMoney())
+                    .goalJob(setGoalDto.getGoalJob())
+                    .goalIncome(setGoalDto.getGoalIncome())
+                    .goalScore(0)
+                    .build();
+            goalRepository.save(goal);
+        } else if (!nextMonthGoalExists) {
+            // 다음 달 목표 등록
+            goal = Goal.builder()
+                    .member(member)
+                    .goalStartDate(nextMonth)
                     .previousGoalMoney(setGoalDto.getPreviousGoalMoney())
                     .goalJob(setGoalDto.getGoalJob())
                     .goalIncome(setGoalDto.getGoalIncome())
@@ -73,17 +76,20 @@ public class GoalServiceImpl implements GoalService {
                     .build();
             goalRepository.save(goal);
         } else {
-            goal = nextMonthGoalOpt.get();
+            // 다음 달 목표 수정
+            goal = goals.stream()
+                    .filter(g -> g.getGoalStartDate().equals(nextMonth))
+                    .findFirst()
+                    .get();
             goal.setPreviousGoalMoney(setGoalDto.getPreviousGoalMoney());
             goal.setGoalJob(setGoalDto.getGoalJob());
             goal.setGoalIncome(setGoalDto.getGoalIncome());
             goalRepository.save(goal);
-
         }
 
         return GoalResponseDto.builder()
-                .thisMonthGoalExists(thisMonthExists)
-                .nextMonthGoalExists(nextMonthExists)
+                .thisMonthGoalExists(thisMonthGoalExists)
+                .nextMonthGoalExists(nextMonthGoalExists)
                 .goalData(SetGoalDto.builder()
                         .goalJob(goal.getGoalJob())
                         .goalIncome(goal.getGoalIncome())
