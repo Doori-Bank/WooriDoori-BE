@@ -20,10 +20,6 @@ import java.time.LocalDate;
 
 public class GoalDto {
 
-    @Schema(description = "목표의 ID", example = "1")
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long goalId;
-
     @Schema(description = "회원 ID", example = "example@naver.com")
     private Long memberId;
 
@@ -32,12 +28,6 @@ public class GoalDto {
 
     @Schema(description = "목표 제한금액", example = "300")
     private Integer previousGoalMoney;
-
-    @Schema(description = "목표 점수 (예: 85점)", example = "0")
-    private Integer goalScore;
-
-    @Schema(description = "두리 코멘트", example = "")
-    private String goalComment;
 
     @Schema(description = "회원 직업", example = "EMPLOYEE")
     private JobType goalJob;

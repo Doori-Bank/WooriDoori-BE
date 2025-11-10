@@ -90,7 +90,7 @@ public enum ErrorCode {
     CARD_ISNOTYOURS(HttpStatus.FORBIDDEN, "CARD-010", "해당 카드는 수정이 불가합니다."),
     
     // 목표 - 목표설정 입력/수정/조회
-    GOAL_INVALIDVALUE(HttpStatus.UNPROCESSABLE_ENTITY, "GOAL-001", "목표설정 관련 입력이 올바르지 않습니다."),
+    GOAL_INVALIDVALUE(HttpStatus.BAD_REQUEST, "GOAL-001", "제한금액은 급여보다 클 수 없습니다."),
     GOAL_INVALIDNUM(HttpStatus.BAD_REQUEST, "GOAL-002", "목표치가 올바르지 않습니다."),
     GOAL_ISNOTYOURS(HttpStatus.FORBIDDEN, "GOAL-003", "해당 달성도는 조회가 불가합니다."),
     GOAL_ISNULL(HttpStatus.NOT_FOUND, "GOAL-004", "해당 달성도는 존재하지 않습니다."),

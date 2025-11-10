@@ -53,50 +53,32 @@ public class GoalServiceImpl implements GoalService {
         boolean nextMonthGoalExists = goals.stream()
                 .anyMatch(g -> g.getGoalStartDate().equals(nextMonth));
 
-        Goal goal;
+
         if (!thisMonthGoalExists) {
             // 이번 달 목표 등록
-            goal = Goal.builder()
-                    .member(member)
-                    .goalStartDate(thisMonth)
-                    .previousGoalMoney(setGoalDto.getPreviousGoalMoney())
-                    .goalJob(setGoalDto.getGoalJob())
-                    .goalIncome(setGoalDto.getGoalIncome())
-                    .goalScore(0)
-                    .build();
+            setGoalDto.setGoalStartDate(thisMonth);
+            Goal goal = setGoalDto.toEntity();
+            goal.setMember(member);
             goalRepository.save(goal);
         } else if (!nextMonthGoalExists) {
             // 다음 달 목표 등록
-            goal = Goal.builder()
-                    .member(member)
-                    .goalStartDate(nextMonth)
-                    .previousGoalMoney(setGoalDto.getPreviousGoalMoney())
-                    .goalJob(setGoalDto.getGoalJob())
-                    .goalIncome(setGoalDto.getGoalIncome())
-                    .goalScore(0)
-                    .build();
+            setGoalDto.setGoalStartDate(nextMonth);
+            Goal goal = setGoalDto.toEntity();
+            goal.setMember(member);
             goalRepository.save(goal);
         } else {
             // 다음 달 목표 수정
-            goal = goals.stream()
-                    .filter(g -> g.getGoalStartDate().equals(nextMonth))
-                    .findFirst()
-                    .get();
-            goal.setPreviousGoalMoney(setGoalDto.getPreviousGoalMoney());
-            goal.setGoalJob(setGoalDto.getGoalJob());
-            goal.setGoalIncome(setGoalDto.getGoalIncome());
+            setGoalDto.setGoalStartDate(nextMonth);
+            Goal goal = setGoalDto.toEntity();
+            goal.setMember(member);
+            goal.setId(goals.stream().filter(g -> g.getGoalStartDate().equals(nextMonth)).findFirst().get().getId());
             goalRepository.save(goal);
         }
 
         return GoalResponseDto.builder()
                 .thisMonthGoalExists(thisMonthGoalExists)
                 .nextMonthGoalExists(nextMonthGoalExists)
-                .goalData(SetGoalDto.builder()
-                        .goalJob(goal.getGoalJob())
-                        .goalIncome(goal.getGoalIncome())
-                        .previousGoalMoney(goal.getPreviousGoalMoney())
-                        .build())
+                .goalData(setGoalDto)
                 .build();
-
     }
 }
