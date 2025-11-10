@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -54,11 +55,14 @@ public class CardServiceImpl implements CardService {
     @Override
     @Transactional
     public UserCardResponseDto createUserCard(Long memberId, CardCreateRequestDto request) {
+        Long safeMemberId = Objects.requireNonNull(memberId, "memberId must not be null");
+        String cardNum = Objects.requireNonNull(request.getCardNum(), "cardNum must not be null");
+
         // Member 엔티티 참조 (프록시 객체 - FK 설정용)
-        Member member = memberRepository.getReferenceById(memberId);
+        Member member = memberRepository.getReferenceById(safeMemberId);
 
         // 기존 카드가 있는지 확인 (카드번호로만 검색 - member가 null일 수 있으므로)
-        Optional<MemberCard> existingCard = memberCardRepository.findByCardNum(request.getCardNum());
+        Optional<MemberCard> existingCard = memberCardRepository.findByCardNum(cardNum);
 
         MemberCard memberCard;
         if (existingCard.isPresent()) {
@@ -96,30 +100,20 @@ public class CardServiceImpl implements CardService {
 
             // member FK 설정 및 card_alias 업데이트 후 DB에 저장
             log.info("MemberCard 업데이트 전 - memberId: {}, cardNum: {}, 기존 member: {}",
-                    memberId, request.getCardNum(),
+                    safeMemberId, cardNum,
                     memberCard.getMember() != null ? memberCard.getMember().getId() : "null");
 
-            // member FK를 직접 UPDATE 쿼리로 설정 (명시적으로 DB에 반영)
-            int updatedRows = memberCardRepository.updateMemberId(memberCard.getId(), memberId);
-            log.info("MemberCard member_id 업데이트 - memberCardId: {}, memberId: {}, updatedRows: {}",
-                    memberCard.getId(), memberId, updatedRows);
-
-            if (updatedRows == 0) {
-                log.warn("member_id 업데이트 실패 - memberCardId: {}, memberId: {}", memberCard.getId(), memberId);
-            }
+            memberCard.setMember(member);
 
             // card_alias 업데이트
             if (request.getCardAlias() != null && !request.getCardAlias().isEmpty()) {
-                // UPDATE 쿼리 후 영속성 컨텍스트를 clear했으므로 다시 조회
-                memberCard = memberCardRepository.findByMemberIdAndCardNum(memberId, request.getCardNum())
-                        .orElseThrow(() -> new CustomException(ErrorCode.CARD_ISNULL));
                 memberCard.setCardAlias(request.getCardAlias());
-                memberCardRepository.saveAndFlush(memberCard);
-            } else {
-                // card_alias 업데이트가 없어도 member_id 업데이트 후 다시 조회
-                memberCard = memberCardRepository.findByMemberIdAndCardNum(memberId, request.getCardNum())
-                        .orElseThrow(() -> new CustomException(ErrorCode.CARD_ISNULL));
             }
+
+            memberCardRepository.save(memberCard);
+
+            memberCard = memberCardRepository.findByMemberIdAndCardNum(safeMemberId, cardNum)
+                    .orElse(memberCard);
 
             log.info("최종 조회 후 - memberCard member: {}",
                     memberCard.getMember() != null ? memberCard.getMember().getId() : "null");
@@ -134,48 +128,45 @@ public class CardServiceImpl implements CardService {
     @Override
     @Transactional
     public void deleteCard(Long memberId, CardDeleteRequestDto request) {
-        // 해당 사용자의 카드 찾기 (id와 memberId로 검증)
-        Optional<MemberCard> memberCard = memberCardRepository.findById(request.getId());
+        Long safeMemberId = Objects.requireNonNull(memberId, "memberId must not be null");
+        Long cardId = Objects.requireNonNull(request.getId(), "cardId must not be null");
 
-        if (memberCard.isEmpty()) {
-            throw new CustomException(ErrorCode.CARD_ISNULL);
-        }
+        // 해당 사용자의 카드 찾기 (id와 memberId로 검증)
+        MemberCard card = memberCardRepository.findById(cardId)
+                .orElseThrow(() -> new CustomException(ErrorCode.CARD_ISNULL));
 
         // 본인의 카드인지 확인
-        if (memberCard.get().getMember() == null || !memberCard.get().getMember().getId().equals(memberId)) {
+        if (card.getMember() == null || !card.getMember().getId().equals(safeMemberId)) {
             throw new CustomException(ErrorCode.CARD_ISNOTYOURS);
         }
 
         // member_id를 NULL로 설정 (화면에서만 삭제, DB에는 남아있음)
-        int updatedRows = memberCardRepository.deleteMemberId(request.getId(), memberId);
+        card.setMember(null);
+        memberCardRepository.save(card);
 
-        if (updatedRows == 0) {
-            throw new CustomException(ErrorCode.CARD_ISNOTYOURS);
-        }
-
-        log.info("카드 삭제 완료 - memberCardId: {}, memberId: {}", request.getId(), memberId);
+        log.info("카드 삭제 완료 - memberCardId: {}, memberId: {}", cardId, safeMemberId);
     }
 
     @Override
     @Transactional
     public void editCardAlias(Long memberId, CardEditRequestDto request) {
-        // member_id가 등록되어 있는 카드 찾기 (id로 조회)
-        Optional<MemberCard> memberCard = memberCardRepository.findById(request.getId());
+        Long safeMemberId = Objects.requireNonNull(memberId, "memberId must not be null");
+        Long cardId = Objects.requireNonNull(request.getId(), "cardId must not be null");
 
-        if (memberCard.isEmpty()) {
-            throw new CustomException(ErrorCode.CARD_ISNULL);
-        }
+        // member_id가 등록되어 있는 카드 찾기 (id로 조회)
+        MemberCard memberCard = memberCardRepository.findById(cardId)
+                .orElseThrow(() -> new CustomException(ErrorCode.CARD_ISNULL));
 
         // 본인의 카드인지 확인
-        if (memberCard.get().getMember() == null || !memberCard.get().getMember().getId().equals(memberId)) {
+        if (memberCard.getMember() == null || !memberCard.getMember().getId().equals(safeMemberId)) {
             throw new CustomException(ErrorCode.CARD_ISNOTYOURS);
         }
 
         // card_alias 업데이트
-        memberCard.get().setCardAlias(request.getCardAlias());
-        memberCardRepository.saveAndFlush(memberCard.get());
+        memberCard.setCardAlias(request.getCardAlias());
+        memberCardRepository.saveAndFlush(memberCard);
 
         log.info("카드 별명 수정 완료 - memberCardId: {}, memberId: {}, cardAlias: {}",
-                request.getId(), memberId, request.getCardAlias());
+                cardId, safeMemberId, request.getCardAlias());
     }
 }

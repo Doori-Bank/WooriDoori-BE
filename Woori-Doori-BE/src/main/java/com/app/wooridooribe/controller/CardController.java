@@ -9,7 +9,6 @@ import com.app.wooridooribe.controller.dto.UserCardResponseDto;
 import com.app.wooridooribe.jwt.MemberDetail;
 import com.app.wooridooribe.service.card.CardService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
@@ -35,7 +34,7 @@ public class CardController {
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패 (JWT 필요)", content = @Content(schema = @Schema(example = "{\"statusCode\": 401, \"errorResultMsg\": \"로그인을 해주세요\", \"errorName\": \"NO_TOKEN\"}")))
     @GetMapping
     public ResponseEntity<ApiResponse<List<CardResponseDto>>> getCardList(
-            @Parameter(hidden = true) Authentication authentication) {
+            Authentication authentication) {
         // DB에 있는 모든 카드 조회
         List<CardResponseDto> result = cardService.getAllCards();
 
@@ -50,7 +49,7 @@ public class CardController {
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "사용자 또는 카드를 찾을 수 없음", content = @Content(schema = @Schema(example = "{\"statusCode\": 404, \"errorResultMsg\": \"해당 카드는 존재하지 않습니다.\", \"errorName\": \"CARD_ISNULL\"}")))
     @PatchMapping("/putCard")
     public ResponseEntity<ApiResponse<UserCardResponseDto>> createUserCard(
-            @Parameter(hidden = true) Authentication authentication,
+            Authentication authentication,
             @RequestBody(description = "카드 검증 요청 바디", required = true, content = @Content(schema = @Schema(implementation = CardCreateRequestDto.class))) @org.springframework.web.bind.annotation.RequestBody CardCreateRequestDto request) {
         // JWT에서 인증된 사용자 ID 가져오기
         MemberDetail principal = (MemberDetail) authentication.getPrincipal();
@@ -69,7 +68,7 @@ public class CardController {
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "본인의 카드만 삭제 가능", content = @Content(schema = @Schema(example = "{\"statusCode\": 403, \"errorResultMsg\": \"해당 카드는 수정이 불가합니다.\", \"errorName\": \"CARD_ISNOTYOURS\"}")))
     @PatchMapping("/deleteCard")
     public ResponseEntity<ApiResponse<Void>> deleteCard(
-            @Parameter(hidden = true) Authentication authentication,
+            Authentication authentication,
             @RequestBody(description = "카드 삭제 요청 바디", required = true, content = @Content(schema = @Schema(implementation = CardDeleteRequestDto.class))) @org.springframework.web.bind.annotation.RequestBody CardDeleteRequestDto request) {
         // JWT에서 인증된 사용자 ID 가져오기
         MemberDetail principal = (MemberDetail) authentication.getPrincipal();
@@ -87,7 +86,7 @@ public class CardController {
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "카드를 찾을 수 없음", content = @Content(schema = @Schema(example = "{\"statusCode\": 404, \"errorResultMsg\": \"해당 카드는 존재하지 않습니다.\", \"errorName\": \"CARD_ISNULL\"}")))
     @PatchMapping("/editCard")
     public ResponseEntity<ApiResponse<Void>> editCard(
-            @Parameter(hidden = true) Authentication authentication,
+            Authentication authentication,
             @RequestBody(description = "카드 별명 수정 요청 바디", required = true, content = @Content(schema = @Schema(implementation = CardEditRequestDto.class))) @org.springframework.web.bind.annotation.RequestBody CardEditRequestDto request) {
         // JWT에서 인증된 사용자 ID 가져오기
         MemberDetail principal = (MemberDetail) authentication.getPrincipal();
