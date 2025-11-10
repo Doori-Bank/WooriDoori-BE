@@ -9,7 +9,7 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 @Repository
-public interface GoalRepository extends JpaRepository<Goal, Long> {
+public interface GoalRepository extends JpaRepository<Goal, Long>, GoalQueryDsl {
     
     /**
      * 특정 회원의 가장 최근 목표를 조회합니다.

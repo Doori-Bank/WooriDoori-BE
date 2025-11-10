@@ -38,8 +38,8 @@ public class MainServiceImpl implements MainService {
         Long memberId = SecurityUtil.getCurrentMemberId();
         log.info("메인 페이지 데이터 조회 시작 - memberId: {}", memberId);
 
-        // 1. 최근 목표 조회
-        Goal latestGoal = goalRepository.findLatestGoalByMemberId(memberId)
+        // 1. 이번 달 목표 조회 (QueryDSL)
+        Goal latestGoal = goalRepository.findCurrentMonthGoalByMemberId(memberId)
                 .orElseThrow(() -> new CustomException(ErrorCode.GOAL_ISNULL));
 
         LocalDate goalStartDate = latestGoal.getGoalStartDate();
