@@ -1,7 +1,6 @@
 package com.app.wooridooribe.controller;
 
 import com.app.wooridooribe.controller.dto.*;
-import com.app.wooridooribe.entity.Goal;
 import com.app.wooridooribe.jwt.MemberDetail;
 import com.app.wooridooribe.service.goal.GoalService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -11,10 +10,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-
-
-import java.time.LocalDate;
-import java.util.List;
 
 @RestController
 @RequestMapping("/goal")
@@ -41,7 +36,7 @@ public class GoalController {
         Long memberId = principal.getMember().getId();
         String resultMsg;
 
-        ReturnGoalDto result = goalService.setGoal(memberId, setGoalDto);
+        GoalResponseDto result = goalService.setGoal(memberId, setGoalDto);
 
         // resultMsg (이번 달 설정 / 다음 달 등록 / 수정됨)
         if (!result.isThisMonthGoalExists()) {

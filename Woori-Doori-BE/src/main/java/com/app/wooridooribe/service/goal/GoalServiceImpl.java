@@ -1,6 +1,6 @@
 package com.app.wooridooribe.service.goal;
 
-import com.app.wooridooribe.controller.dto.ReturnGoalDto;
+import com.app.wooridooribe.controller.dto.GoalResponseDto;
 import com.app.wooridooribe.controller.dto.SetGoalDto;
 import com.app.wooridooribe.entity.Goal;
 import com.app.wooridooribe.entity.Member;
@@ -24,7 +24,7 @@ public class GoalServiceImpl implements GoalService {
     private final MemberRepository memberRepository;
 
     @Override
-    public ReturnGoalDto setGoal(Long memberId, SetGoalDto setGoalDto) {
+    public GoalResponseDto setGoal(Long memberId, SetGoalDto setGoalDto) {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
@@ -81,7 +81,7 @@ public class GoalServiceImpl implements GoalService {
 
         }
 
-        return ReturnGoalDto.builder()
+        return GoalResponseDto.builder()
                 .thisMonthGoalExists(thisMonthExists)
                 .nextMonthGoalExists(nextMonthExists)
                 .goalData(SetGoalDto.builder()
