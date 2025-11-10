@@ -1,5 +1,6 @@
 package com.app.wooridooribe.entity;
 
+import com.app.wooridooribe.entity.type.EmotionType;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -26,7 +27,8 @@ public class Diary {
     private LocalDate diaryDay; // 날짜
 
     @Column(name = "diary_emotion")
-    private String diaryEmotion; // 소비 감정
+    @Enumerated(EnumType.STRING)
+    private EmotionType diaryEmotion; // 소비 감정
 
     @Column(name = "diary_content")
     private String diaryContent; // 소비 일기 내용

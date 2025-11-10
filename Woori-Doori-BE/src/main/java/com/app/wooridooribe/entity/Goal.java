@@ -1,5 +1,6 @@
 package com.app.wooridooribe.entity;
 
+import com.app.wooridooribe.entity.type.JobType;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -35,7 +36,8 @@ public class Goal {
     private String goalComment; // 둘리 코멘트
 
     @Column(name = "goal_job")
-    private String goalJob; // 직업
+    @Enumerated(EnumType.STRING)
+    private JobType goalJob; // 직업
 
     @Column(name = "goal_income")
     private String goalIncome; // 수입

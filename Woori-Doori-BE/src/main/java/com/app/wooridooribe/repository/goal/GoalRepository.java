@@ -10,13 +10,5 @@ import java.util.Optional;
 
 @Repository
 public interface GoalRepository extends JpaRepository<Goal, Long>, GoalQueryDsl {
-    
-    /**
-     * 특정 회원의 가장 최근 목표를 조회합니다.
-     */
-    @Query("SELECT g FROM Goal g " +
-           "WHERE g.member.id = :memberId " +
-           "ORDER BY g.goalStartDate DESC")
-    Optional<Goal> findLatestGoalByMemberId(@Param("memberId") Long memberId);
 }
 
