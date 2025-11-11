@@ -1,9 +1,6 @@
 package com.app.wooridooribe.service.goal;
 
-import com.app.wooridooribe.controller.dto.GetGoalDto;
-import com.app.wooridooribe.controller.dto.GoalDto;
-import com.app.wooridooribe.controller.dto.GoalResponseDto;
-import com.app.wooridooribe.controller.dto.SetGoalDto;
+import com.app.wooridooribe.controller.dto.*;
 import com.app.wooridooribe.entity.Goal;
 import com.app.wooridooribe.entity.Member;
 import com.app.wooridooribe.entity.type.JobType;
@@ -84,33 +81,27 @@ public class GoalServiceImpl implements GoalService {
                 .build();
     }
 
-//    @Override
-//    public List<SetGoalDto> getGoalHistory(Long memberId) {
-//        Member member = memberRepository.findById(memberId)
-//                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
-//
-//        List<Goal> goals = goalRepository.findAllGoalsByMember(memberId);
-//
-////        return (SetGoalDto) goals.stream()
-////                .map(goal -> GoalDto.builder()
-////                        .goalStartDate(goals.getGoalStartDate())
-////                        .previousGoalMoney(goals.getPreviousGoalMoney())
-////                        .goalJob(JobType.valueOf(goals.getGoalJob().name()))
-////                        .goalIncome(goals.getGoalIncome())
-////                        .build())
-////                .toList();
-//
-//    }
     @Override
-    public List<GetGoalDto> getGoalHistory(String memberId) {
-        List<Goal> goals = goalRepository.findAllGoalsByMember(memberId);
+    public List<GetGoalDto> getGoalHistory(String requestMemberId, String tokenUserId) {
+
+        if (!requestMemberId.equals(tokenUserId)) {
+            throw new CustomException(ErrorCode.GOAL_ISNOTYOURS);
+        }
+
+        Member member = memberRepository.findByMemberId(requestMemberId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+        List<Goal> goals = goalRepository.findAllGoalsByMember(requestMemberId);
+
+        if (goals == null || goals.isEmpty()) {
+            throw new CustomException(ErrorCode.GOAL_ISNULL);
+        }
 
         return goals.stream()
-                .map(goal -> GetGoalDto.builder()
-                        .goalStartDate(goal.getGoalStartDate())
-                        .previousGoalMoney(goal.getPreviousGoalMoney())
-                        .goalIncome(goal.getGoalIncome())
-                        .build())
+                .map(GetGoalDto::fromEntity)  // 각 Goal을 GetGoalDto로 변환
                 .toList();
+
     }
+
+
 }

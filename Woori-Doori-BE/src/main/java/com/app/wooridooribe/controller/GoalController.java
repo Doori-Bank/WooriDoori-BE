@@ -1,14 +1,12 @@
 package com.app.wooridooribe.controller;
 
 import com.app.wooridooribe.controller.dto.*;
-import com.app.wooridooribe.entity.Goal;
 import com.app.wooridooribe.jwt.MemberDetail;
 import com.app.wooridooribe.service.goal.GoalService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -33,7 +31,7 @@ public class GoalController {
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "목표치는 급여보다 클 수 없습니다")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "권한 없음")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패 (JWT 필요)")
-    public ResponseEntity<ApiResponse<SetGoalDto>> setCurrentGoal(Authentication authentication,
+    public ResponseEntity<ApiResponse<SetGoalDto>> setGoal(Authentication authentication,
             @RequestBody SetGoalDto setGoalDto) {
 
         MemberDetail principal = (MemberDetail) authentication.getPrincipal();
@@ -56,19 +54,22 @@ public class GoalController {
 
 
 
-    /** 목표 히스토리 조회 API **/
+    /**
+     * 목표 히스토리 조회 API
+     **/
     @GetMapping("/getgoalhistory/{memberId}")
     @Operation(summary = "목표 금액 히스토리 보기", description = "로그인한 아이디로 등록한 목표금액 기록을 전부 조회합니다")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "목표 조회 성공")
-    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "422", description = "잘못된 값을 입력하였습니다")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "기록이 존재하지 않음")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "권한 없음")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패 (JWT 필요)")
-    public ApiResponse<List<GetGoalDto>> getGoalHistory(Authentication authentication) {
+    public ResponseEntity<ApiResponse<List<GetGoalDto>>> getGoalHistory(@PathVariable String memberId, Authentication authentication) {
         MemberDetail principal = (MemberDetail) authentication.getPrincipal();
-        String userId = principal.getMember().getMemberId();
+        String tokenUserId = principal.getMember().getMemberId();
 
-        List<GetGoalDto> result = goalService.getGoalHistory(userId);
-        return ApiResponse.res(HttpStatus.OK.value(), "목표 히스토리를 불러왔어요", result);
+        String userId = principal.getMember().getMemberId();
+        List<GetGoalDto> result = goalService.getGoalHistory(memberId, tokenUserId);
+        return ResponseEntity.ok(ApiResponse.res(200, "목표 히스토리를 불러왔어요", result));
 
     }
 }

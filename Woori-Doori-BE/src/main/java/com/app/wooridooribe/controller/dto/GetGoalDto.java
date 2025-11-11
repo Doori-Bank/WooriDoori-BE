@@ -7,6 +7,8 @@ import lombok.*;
 
 import java.time.LocalDate;
 
+import static com.app.wooridooribe.entity.QGoal.goal;
+
 
 @Getter
 @Setter
@@ -25,5 +27,13 @@ public class GetGoalDto {
 
     @Schema(description = "목표 제한금액", example = "300")
     private Integer previousGoalMoney; // 목표소비금액
+
+    public static GetGoalDto fromEntity(Goal goal) {
+        return GetGoalDto.builder()
+                .goalStartDate(goal.getGoalStartDate())
+                .goalIncome(goal.getGoalIncome())
+                .previousGoalMoney(goal.getPreviousGoalMoney())
+                .build();
+    }
 
 }

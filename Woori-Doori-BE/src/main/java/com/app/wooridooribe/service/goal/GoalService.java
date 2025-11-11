@@ -11,5 +11,5 @@ import java.util.List;
 
 public interface GoalService {
     GoalResponseDto setGoal(Long memberId, SetGoalDto setGoalDto);
-    List<GetGoalDto> getGoalHistory(String userName);
+    List<GetGoalDto> getGoalHistory(String requestMemberId, String tokenUserId);
 }
