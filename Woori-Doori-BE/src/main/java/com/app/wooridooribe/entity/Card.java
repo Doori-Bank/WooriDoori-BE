@@ -27,8 +27,8 @@ public class Card {
     @Column(name = "card_name", nullable = false)
     private String cardName; // 카드명
 
-    @Column(name = "card_url", length = 50)
-    private String cardUrl; // 카드URL
+    @Transient
+    private String cardUrl; // 카드URL (DB 컬럼 없음, File 엔티티에서 가져옴)
 
     @Column(name="card_benefit")
     private String cardBenefit;

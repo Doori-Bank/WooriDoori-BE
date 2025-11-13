@@ -41,11 +41,14 @@ public class MemberCard {
     @Column(name = "card_user_regist_num", nullable = false)
     private String cardUserRegistNum;
 
+    @Column(name = "card_user_regist_back", nullable = false)
+    private String cardUserRegistBack;
+
     @Column(name = "card_cvc", nullable = false)
     private String cardCvc;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = true)
+    @JoinColumn(name = "member_id", nullable = true)
     private Member member; // 유저 고유번호
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -57,4 +60,3 @@ public class MemberCard {
     @Builder.Default
     private List<CardHistory> cardHistories = new ArrayList<>();
 }
-

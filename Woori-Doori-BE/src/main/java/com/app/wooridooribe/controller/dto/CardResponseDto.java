@@ -1,0 +1,84 @@
+package com.app.wooridooribe.controller.dto;
+
+import com.app.wooridooribe.entity.Card;
+import com.app.wooridooribe.entity.MemberCard;
+import com.app.wooridooribe.entity.type.CardType;
+import com.app.wooridooribe.entity.type.YESNO;
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Builder;
+import lombok.Getter;
+
+@Getter
+@Builder
+@Schema(description = "카드 목록 응답 DTO")
+public class CardResponseDto {
+    @Schema(description = "카드 ID", example = "1")
+    private Long id;
+
+    @Schema(description = "카드명", example = "우리카드 7CORE")
+    private String cardName;
+
+    @Schema(description = "카드 이미지 URL", example = "https://cloud5-img-storage.s3.ap-northeast-2.amazonaws.com/franchise_logo/haruensoku.png")
+    private String cardUrl;
+
+    @Schema(description = "카드 혜택", example = "온라인쇼핑, 대형마트, 배달앱 10% 청구할인")
+    private String cardBenef;
+
+    @Schema(description = "카드 타입", example = "CREDIT")
+    private CardType cardType;
+
+    @Schema(description = "카드 서비스", example = "YES")
+    private String cardSvc;
+
+    @Schema(description = "연회비 1", example = "국내전용 12,000")
+    private String annualFee1;
+
+    @Schema(description = "연회비 2", example = "해외겸용 12,000")
+    private String annualFee2;
+
+    public static CardResponseDto from(MemberCard memberCard) {
+        Card card = memberCard.getCard();
+
+        // YESNO enum을 YES/NO 문자열로 변환
+        String cardSvcStr = card.getCardSvc() == YESNO.YES ? "YES" : "NO";
+
+        // File 엔티티에서 카드 이미지 URL - file_path에 이미 전체 URL이 있으므로 그대로 사용
+        String cardUrl = "";
+        if (card.getCardImage() != null && card.getCardImage().getFilePath() != null) {
+            cardUrl = card.getCardImage().getFilePath();
+        }
+
+        return CardResponseDto.builder()
+                .id(card.getId())
+                .cardName(card.getCardName())
+                .cardUrl(cardUrl)
+                .cardBenef(card.getCardBenefit() != null ? card.getCardBenefit() : "")
+                .cardType(card.getCardType())
+                .cardSvc(cardSvcStr)
+                .annualFee1(card.getAnnualFee1() != null ? card.getAnnualFee1() : "")
+                .annualFee2(card.getAnnualFee2() != null ? card.getAnnualFee2() : "")
+                .build();
+    }
+
+    public static CardResponseDto fromCard(Card card) {
+        // YESNO enum을 YES/NO 문자열로 변환
+        String cardSvcStr = card.getCardSvc() == YESNO.YES ? "YES" : "NO";
+
+        // File 엔티티에서 카드 이미지 URL - file_path에 이미 전체 URL이 있으므로 그대로 사용
+        String cardUrl = "";
+        if (card.getCardImage() != null && card.getCardImage().getFilePath() != null) {
+            cardUrl = card.getCardImage().getFilePath();
+        }
+
+        return CardResponseDto.builder()
+                .id(card.getId())
+                .cardName(card.getCardName())
+                .cardUrl(cardUrl)
+                .cardBenef(card.getCardBenefit() != null ? card.getCardBenefit() : "")
+                .cardType(card.getCardType())
+                .cardSvc(cardSvcStr)
+                .annualFee1(card.getAnnualFee1() != null ? card.getAnnualFee1() : "")
+                .annualFee2(card.getAnnualFee2() != null ? card.getAnnualFee2() : "")
+                .build();
+    }
+}

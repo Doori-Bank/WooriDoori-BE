@@ -15,4 +15,6 @@ public interface GoalQueryDsl {
     
     // 특정 시작 날짜의 목표 조회 (지난 달 목표 조회용)
     Optional<Goal> findGoalByMemberIdAndStartDate(Long memberId, LocalDate startDate);
+
+    List<Goal> findAllGoalsByMember(String userName);
 }
