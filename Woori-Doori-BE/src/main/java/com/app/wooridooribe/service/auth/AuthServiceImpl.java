@@ -123,9 +123,14 @@ public class AuthServiceImpl implements AuthService {
             refreshTokenService.saveRefreshToken(memberId, tokenDto.getRefreshToken());
 
             // 5. LoginResponseDto 생성
+            TokenRequestDto tokens = TokenRequestDto.builder()
+                    .accessToken(tokenDto.getAccessToken())
+                    .refreshToken(tokenDto.getRefreshToken())
+                    .build();
+            
             return LoginResponseDto.builder()
                     .name(memberDetail.getName())
-                    .token(tokenDto.getAccessToken())
+                    .tokens(tokens)
                     .build();
                     
         } catch (org.springframework.security.authentication.BadCredentialsException e) {

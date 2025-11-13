@@ -12,6 +12,19 @@ public interface GoalService {
     
     GoalScoreResponseDto calculateAndUpdateGoalScores(Long memberId);
     
+    /**
+     * 배치 작업용: 점수 계산만 하고 SSE 알림은 전송하지 않음
+     * @param memberId 사용자 ID
+     * @return 계산된 점수
+     */
+    GoalScoreResponseDto calculateAndUpdateGoalScoresBatch(Long memberId);
+    
+    /**
+     * 모든 활성 유저의 점수를 배치로 계산
+     * @return 처리된 유저 수
+     */
+    int calculateAllActiveUsersScores();
+    
     DashboardResponseDto getDashboardData(Long memberId);
     
     DashboardResponseDto getPastGoalData(Long memberId, int year, int month);

@@ -15,6 +15,9 @@ public enum CategoryType {
     HOUSING,
     HOSPITAL,
     TRANSFER,
+    TRAVEL,
+    TELECOM,
     ALL;
+
 }
 
