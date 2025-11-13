@@ -607,15 +607,15 @@ public class GoalServiceImpl implements GoalService {
         LocalDate targetDate = LocalDate.of(year, month, 1);
         Goal pastGoal = goalRepository.findGoalByMemberIdAndStartDate(memberId, targetDate)
                 .orElseThrow(() -> new CustomException(ErrorCode.GOAL_ISNULL));
-        
+
         LocalDate startDate = pastGoal.getGoalStartDate();
         LocalDate endDate = startDate.plusDays(30);
         Integer goalAmount = pastGoal.getPreviousGoalMoney() != null ? pastGoal.getPreviousGoalMoney() : 0;
-        
+
         // 2. 해당 월의 실제 지출 조회 (원 단위)
         int actualSpending = cardHistoryRepository.getTotalSpentByMemberAndDateRange(
                 memberId, startDate, endDate);
-        
+
         // 3. 달성률 계산 (0~100)
         // 목표 금액은 만원 단위이므로 원 단위로 변환하여 비교
         int goalAmountInWon = goalAmount * 10000;
@@ -624,24 +624,24 @@ public class GoalServiceImpl implements GoalService {
             achievementRate = (int) Math.round((double) actualSpending / goalAmountInWon * 100);
             achievementRate = Math.min(100, Math.max(0, achievementRate)); // 0~100 범위 제한
         }
-        
+
         // 4. Goal 엔티티에서 점수들 조회 (null이면 0으로 설정)
-        Integer achievementScore = pastGoal.getGoalAchievementScore() != null 
+        Integer achievementScore = pastGoal.getGoalAchievementScore() != null
                 ? pastGoal.getGoalAchievementScore() : 0;
-        Integer stabilityScore = pastGoal.getGoalStabilityScore() != null 
+        Integer stabilityScore = pastGoal.getGoalStabilityScore() != null
                 ? pastGoal.getGoalStabilityScore() : 0;
-        Integer ratioScore = pastGoal.getGoalRatioScore() != null 
+        Integer ratioScore = pastGoal.getGoalRatioScore() != null
                 ? pastGoal.getGoalRatioScore() : 0;
-        Integer continuityScore = pastGoal.getGoalContinuityScore() != null 
+        Integer continuityScore = pastGoal.getGoalContinuityScore() != null
                 ? pastGoal.getGoalContinuityScore() : 0;
-        
+
         // 5. 두리의 한마디
         String goalComment = pastGoal.getGoalComment() != null ? pastGoal.getGoalComment() : "";
-        
+
         // 6. 카테고리별 소비 조회 및 TOP 4 추출
         List<Tuple> categorySpendingList = cardHistoryRepository
                 .getCategorySpendingByMemberAndDateRange(memberId, startDate, endDate);
-        
+
         // 금액 순으로 정렬하여 TOP 4 추출
         Map<CategoryType, Integer> topCategorySpending = categorySpendingList.stream()
                 .map(tuple -> {
@@ -657,7 +657,7 @@ public class GoalServiceImpl implements GoalService {
                         (v1, v2) -> v1,
                         LinkedHashMap::new // 순서 유지
                 ));
-        
+
         return DashboardResponseDto.builder()
                 .goalAmount(goalAmount)
                 .achievementRate(achievementRate)
@@ -668,11 +668,12 @@ public class GoalServiceImpl implements GoalService {
                 .goalComment(goalComment)
                 .topCategorySpending(topCategorySpending)
                 .build();
+    }
 
     @Override
-    public List<GetGoalDto> getGoalHistory(String memberId) {
+    public List<GetGoalDto> getGoalHistory(Long memberId) {
 
-        Member member = memberRepository.findByMemberId(memberId)
+        Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         List<Goal> goals = goalRepository.findAllGoalsByMember(memberId);

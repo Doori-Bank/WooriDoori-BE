@@ -137,7 +137,7 @@ public class GoalController {
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패 (JWT 필요)")
     public ResponseEntity<ApiResponse<List<GetGoalDto>>> getGoalHistory(Authentication authentication) {
         MemberDetail principal = (MemberDetail) authentication.getPrincipal();
-        String userId = principal.getMember().getMemberId();
+        Long userId = principal.getId();
 
         List<GetGoalDto> result = goalService.getGoalHistory(userId);
         return ResponseEntity.ok(ApiResponse.res(200, "목표 히스토리를 불러왔어요", result));

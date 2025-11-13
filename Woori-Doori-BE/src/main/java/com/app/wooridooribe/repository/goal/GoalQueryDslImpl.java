@@ -67,11 +67,12 @@ public class GoalQueryDslImpl implements GoalQueryDsl {
                 .fetchOne();
 
         return Optional.ofNullable(result);
+    }
 
     @Override
-    public List<Goal> findAllGoalsByMember(String userName) {
+    public List<Goal> findAllGoalsByMember(Long memberId) {
 
-        Member member = memberRepository.findByMemberId(userName)
+        Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
         QGoal goal = QGoal.goal;
 

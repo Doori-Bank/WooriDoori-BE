@@ -32,5 +32,5 @@ public interface GoalService {
     DashboardResponseDto getDashboardData(Long memberId);
     
     DashboardResponseDto getPastGoalData(Long memberId, int year, int month);
-    List<GetGoalDto> getGoalHistory(String memberId);
+    List<GetGoalDto> getGoalHistory(Long memberId);
 }
