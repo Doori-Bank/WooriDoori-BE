@@ -5,14 +5,38 @@ spring:
     port: 8080
     timezone: Asia/Seoul
 
-  # Spring AI - OpenAI Configuration
-#  ai:
-#    openai:
-#      api-key: ${OPENAI_API_KEY:your-openai-api-key-here}
-#      chat:
-#        options:
-#          model: gpt-4
-#          temperature: 0.7
+  # Spring AI - Groq Configuration (Llama 3.1 8B)
+  ai:
+    # Groq API 설정 (OpenAI 호환 API 사용)
+    openai:
+      api-key: ${GROQ_API_KEY:your-groq-api-key-here}
+      base-url: https://api.groq.com/openai/v1
+      chat:
+        options:
+          model: llama-3.1-8b-instant # 또는 llama-3.1-70b-versatile
+          temperature: 0.7
+          max-tokens: 2048
+
+    # Ollama 설정 (로컬 실행 시 사용)
+    ollama:
+      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+      chat:
+        options:
+          model: llama3.1:8b
+          temperature: 0.7
+      # Ollama Embedding 설정 (RAG용 - 문서를 벡터로 변환)
+      embedding:
+        options:
+          model: nomic-embed-text # Ollama embedding 모델 (768 dimensions)
+
+    # RAG를 위한 벡터 스토어 설정 (Elasticsearch)
+    vectorstore:
+      elasticsearch:
+        host: ${ELASTICSEARCH_HOST:localhost}
+        port: ${ELASTICSEARCH_PORT:9200}
+        index-name: ${ELASTICSEARCH_INDEX_NAME:wooridoori-rag-index}
+        dimensions: 768 # Ollama nomic-embed-text embedding dimension
+        similarity: cosine
 
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -26,7 +50,6 @@ spring:
         enabled: true
     static-path-pattern: /files/**
 
-
   servlet:
     multipart:
       max-file-size: 10MB
@@ -35,13 +58,13 @@ spring:
   #      location: /home/ubuntu/files
 
   jackson:
-    time-zone: Asia/Seoul 
+    time-zone: Asia/Seoul
 
   jpa:
     hibernate:
       ddl-auto: none
     database-platform: org.hibernate.dialect.MySQL8Dialect
-    
+
     # jpa format
     properties:
       hibernate:
@@ -54,23 +77,23 @@ spring:
     redis:
       host: ${REDIS_URL}
       port: ${REDIS_PORT}
-      password:    # 비밀번호 없으면 비워둬도 됨
+      password: # 비밀번호 없으면 비워둬도 됨
       timeout: 6000ms
 
   # log
   output:
     ansi:
       enabled: always
-      
+
   # Mail 설정
   mail:
-#    // host, port는 naver에서 정해준 값
+    #    // host, port는 naver에서 정해준 값
     host: smtp.naver.com
     port: 465
-#    // 본인 naver 계정정보 삽입
+    #    // 본인 naver 계정정보 삽입
     username: ${NAVER_MAIL}
     password: ${NAVER_PW}
-#    //전송하기 위한 prop으로 ssl의 신뢰, 권한 등 사용허가
+    #    //전송하기 위한 prop으로 ssl의 신뢰, 권한 등 사용허가
     properties:
       mail.smtp.auth: true
       mail.smtp.ssl.enable: true
