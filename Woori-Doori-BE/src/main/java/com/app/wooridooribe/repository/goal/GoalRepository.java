@@ -10,5 +10,7 @@ import java.util.Optional;
 
 @Repository
 public interface GoalRepository extends JpaRepository<Goal, Long>, GoalQueryDsl {
+   // List<Goal> findAllGoalsByMember(String userName);
+
 }
 

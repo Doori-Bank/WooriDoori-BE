@@ -1,9 +1,6 @@
 package com.app.wooridooribe.service.goal;
 
-import com.app.wooridooribe.controller.dto.DashboardResponseDto;
-import com.app.wooridooribe.controller.dto.GoalResponseDto;
-import com.app.wooridooribe.controller.dto.GoalScoreResponseDto;
-import com.app.wooridooribe.controller.dto.SetGoalDto;
+import com.app.wooridooribe.controller.dto.*;
 import com.app.wooridooribe.entity.Goal;
 import com.app.wooridooribe.entity.Member;
 import com.app.wooridooribe.entity.type.CategoryType;
@@ -671,6 +668,23 @@ public class GoalServiceImpl implements GoalService {
                 .goalComment(goalComment)
                 .topCategorySpending(topCategorySpending)
                 .build();
+
+    @Override
+    public List<GetGoalDto> getGoalHistory(String memberId) {
+
+        Member member = memberRepository.findByMemberId(memberId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+        List<Goal> goals = goalRepository.findAllGoalsByMember(memberId);
+
+        if (goals == null || goals.isEmpty()) {
+            throw new CustomException(ErrorCode.GOAL_ISNULL);
+        }
+
+        return goals.stream()
+                .map(GetGoalDto::fromEntity)  // 각 Goal을 GetGoalDto로 변환
+                .toList();
+
     }
 
 }
