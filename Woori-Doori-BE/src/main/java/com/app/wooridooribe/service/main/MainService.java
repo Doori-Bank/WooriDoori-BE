@@ -7,6 +7,6 @@ public interface MainService {
      * 메인 페이지 데이터를 조회합니다.
      * @return MainDto 메인 페이지 응답 데이터
      */
-    MainDto getMainPageData();
+    MainDto getMainPageData(Long memberId);
 }
 

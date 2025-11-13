@@ -5,6 +5,7 @@ import com.app.wooridooribe.controller.dto.CategorySpendDto;
 import com.app.wooridooribe.controller.dto.MainDto;
 import com.app.wooridooribe.entity.Card;
 import com.app.wooridooribe.entity.Goal;
+import com.app.wooridooribe.entity.type.CategoryType;
 import com.app.wooridooribe.exception.CustomException;
 import com.app.wooridooribe.exception.ErrorCode;
 import com.app.wooridooribe.repository.card.CardRepository;
@@ -34,9 +35,8 @@ public class MainServiceImpl implements MainService {
     private final CardRepository cardRepository;
 
     @Override
-    public MainDto getMainPageData() {
+    public MainDto getMainPageData(Long memberId) {
         // 현재 로그인한 사용자의 ID 가져오기
-        Long memberId = SecurityUtil.getCurrentMemberId();
         log.info("메인 페이지 데이터 조회 시작 - memberId: {}", memberId);
 
         // 1. 이번 달 목표 조회 (QueryDSL)
@@ -84,8 +84,11 @@ public class MainServiceImpl implements MainService {
         String[] ranks = {"top1", "top2", "top3", "top4", "top5"};
         for (int i = 0; i < Math.min(categorySpendingList.size(), 5); i++) {
             Tuple tuple = categorySpendingList.get(i);
-            String category = tuple.get(0, String.class);
+            CategoryType categoryType = tuple.get(0, CategoryType.class);
             Integer totalPrice = tuple.get(1, Integer.class);
+            
+            // CategoryType Enum을 String으로 변환
+            String category = categoryType != null ? categoryType.name() : "";
             
             paidPriceOfCategory.add(CategorySpendDto.builder()
                     .rank(ranks[i])

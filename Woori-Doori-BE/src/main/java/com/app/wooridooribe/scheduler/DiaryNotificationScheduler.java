@@ -30,7 +30,7 @@ public class DiaryNotificationScheduler {
      * cron 표현식: 초 분 시 일 월 요일
      * 0 0 15 * * ? = 매일 15:00:00 (오후 3시)
      */
-    @Scheduled(fixedRate = 1000) // 5분 = 300000ms
+    @Scheduled(fixedRate = 600000) // 5분 = 300000ms
     public void sendDiaryNotification() {
         log.info("=== 일기 작성 알림 스케줄러 시작 ===");
         
