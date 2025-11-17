@@ -63,7 +63,8 @@ jobs:
         continue-on-error: true
         run: |
           set -o pipefail
-          ./gradlew build -x test |& tee build.log
+          ./gradlew clean build -x test |& tee build.log
+
 
       - name: Extract compile error summary
         if: steps.gradle_build.outcome == 'failure'
