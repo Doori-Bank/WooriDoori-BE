@@ -8,8 +8,6 @@ import lombok.*;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.print.DocFlavor.STRING;
-
 @Entity
 @Getter
 @Setter

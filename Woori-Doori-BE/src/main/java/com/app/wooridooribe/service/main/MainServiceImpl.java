@@ -11,7 +11,6 @@ import com.app.wooridooribe.exception.ErrorCode;
 import com.app.wooridooribe.repository.card.CardRepository;
 import com.app.wooridooribe.repository.cardHistory.CardHistoryRepository;
 import com.app.wooridooribe.repository.goal.GoalRepository;
-import com.app.wooridooribe.util.SecurityUtil;
 import com.querydsl.core.Tuple;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

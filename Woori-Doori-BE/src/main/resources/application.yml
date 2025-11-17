@@ -5,14 +5,30 @@ spring:
     port: 8080
     timezone: Asia/Seoul
 
-  # Spring AI - OpenAI Configuration
-#  ai:
-#    openai:
-#      api-key: ${OPENAI_API_KEY:your-openai-api-key-here}
-#      chat:
-#        options:
-#          model: gpt-4
-#          temperature: 0.7
+  # spring ai
+  ai:
+    openai:
+      # Groq API (Chat용)
+      api-key: ${GROQ_API_KEY}
+      base-url: https://api.groq.com/openai
+      chat:
+        options:
+          model: llama-3.1-8b-instant
+          temperature: 0.7
+      # OpenAI 임베딩 비활성화 (Groq는 임베딩을 제공하지 않음)
+      embedding:
+        enabled: false
+    ollama:
+      # Ollama (임베딩용 - 로컬 실행 필요)
+      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+      embedding:
+        model: nomic-embed-text # 임베딩 전용 모델
+    vectorstore:
+      chroma:
+        enabled: false # 자동 설정 비활성화, 수동으로 설정
+        initialize-schema: true
+        client:
+          base-url: ${CHROMA_BASE_URL:http://localhost:8000}
 
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -39,7 +55,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: none
     database-platform: org.hibernate.dialect.MySQL8Dialect
     
     # jpa format
@@ -64,10 +80,13 @@ spring:
       
   # Mail 설정
   mail:
+#    // host, port는 naver에서 정해준 값
     host: smtp.naver.com
     port: 465
+#    // 본인 naver 계정정보 삽입
     username: ${NAVER_MAIL}
     password: ${NAVER_PW}
+#    //전송하기 위한 prop으로 ssl의 신뢰, 권한 등 사용허가
     properties:
       mail.smtp.auth: true
       mail.smtp.ssl.enable: true
@@ -92,6 +111,11 @@ springdoc:
   api-docs:
     path: /v3/api-docs
   default-consumes-media-type: application/json
+
+app:
+  chat:
+    persona: classpath:prompts/persona_default.md
+    rules: classpath:prompts/rules_score.md
 
 # 프론트엔드 URL 설정
 FRONTEND_URL: http://localhost:5173

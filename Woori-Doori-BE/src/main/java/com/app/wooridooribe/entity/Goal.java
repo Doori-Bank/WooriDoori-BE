@@ -48,5 +48,26 @@ public class Goal extends Period {
 
     @Column(name = "goal_continuity_score")
     private Integer goalContinuityScore; // 절약 지속성 점수
+
+    @Transient
+    public Integer getGoalScore() {
+        int sum = 0;
+
+        if (goalAchievementScore != null) {
+            sum += goalAchievementScore;
+        }
+        if (goalContinuityScore != null) {
+            sum += goalContinuityScore;
+        }
+        if (goalRatioScore != null) {
+            sum += goalRatioScore;
+        }
+        if (goalStabilityScore != null) {
+            sum += goalStabilityScore;
+        }
+
+        return Math.round((float) sum);
+    }
+
 }
 

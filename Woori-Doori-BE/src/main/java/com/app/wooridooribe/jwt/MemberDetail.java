@@ -1,6 +1,5 @@
 package com.app.wooridooribe.jwt;
 
-
 import com.app.wooridooribe.entity.Member;
 import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
@@ -15,7 +14,7 @@ public class MemberDetail implements UserDetails {
 
     private final Member member;
 
-    public MemberDetail(Member member){
+    public MemberDetail(Member member) {
         this.member = member;
     }
 
@@ -30,11 +29,11 @@ public class MemberDetail implements UserDetails {
         return member.getPassword();
     }
 
-    public Long getId(){
+    public Long getId() {
         return member.getId();
     }
 
-    public String getName(){
+    public String getName() {
         return member.getMemberName();
     }
 
