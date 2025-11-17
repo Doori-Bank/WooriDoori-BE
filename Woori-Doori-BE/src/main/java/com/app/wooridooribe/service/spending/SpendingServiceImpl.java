@@ -3,11 +3,13 @@ package com.app.wooridooribe.service.spending;
 import com.app.wooridooribe.controller.dto.CardHistoryResponseDto;
 import com.app.wooridooribe.controller.dto.CardHistorySummaryResponseDto;
 import com.app.wooridooribe.entity.CardHistory;
+import com.app.wooridooribe.entity.type.CategoryType;
 import com.app.wooridooribe.entity.type.StatusType;
 import com.app.wooridooribe.exception.CustomException;
 import com.app.wooridooribe.exception.ErrorCode;
-import com.app.wooridooribe.repository.cardhistory.CardHistoryRepository;
 import java.time.LocalDate;
+
+import com.app.wooridooribe.repository.cardHistory.CardHistoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -93,8 +95,17 @@ public class SpendingServiceImpl implements SpendingService {
             throw new CustomException(ErrorCode.HISTORY_INVALID_CATEGORY);
         }
 
+        // String을 CategoryType으로 변환
+        CategoryType categoryType;
         try {
-            cardHistoryRepository.updateCategory(historyId, newCategory);
+            // ENUM 이름으로 변환 (대소문자 구분 없음)
+            categoryType = CategoryType.valueOf(newCategory.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new CustomException(ErrorCode.HISTORY_INVALID_CATEGORY);
+        }
+
+        try {
+            cardHistoryRepository.updateCategory(historyId, categoryType);
         } catch (CustomException e) {
             throw e;
         } catch (Exception e) {
@@ -143,9 +154,10 @@ public class SpendingServiceImpl implements SpendingService {
     }
 
     private void assertOwnership(Long historyId, Long memberId) {
-        boolean mine = cardHistoryRepository.existsByIdAndMemberCard_Member_Id(historyId, memberId);
+        boolean mine = cardHistoryRepository.existsByIdAndMemberCardMemberId(historyId, memberId);
         if (!mine) {
             throw new CustomException(ErrorCode.HISTORY_ISNOTYOURS);
         }
     }
+
 }

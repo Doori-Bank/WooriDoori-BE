@@ -28,7 +28,7 @@ public class Card {
     @Transient
     private String cardUrl; // 카드URL (DB 컬럼 없음, File 엔티티에서 가져옴)
 
-    @Column(name="card_benef")
+    @Column(name="card_benefit")
     private String cardBenefit;
 
     @Column(name="card_svc")
@@ -36,10 +36,10 @@ public class Card {
     private YESNO cardSvc;
 
     @Column(name="annual_fee_1")
-    private String annualFee1;
+    private String annualFee1; // 연회비 (국내)
 
     @Column(name="annual_fee_2")
-    private String annualFee2;
+    private String annualFee2; // 연회비 (해외)
 
     @Column(name ="card_type")
     @Enumerated(EnumType.STRING)

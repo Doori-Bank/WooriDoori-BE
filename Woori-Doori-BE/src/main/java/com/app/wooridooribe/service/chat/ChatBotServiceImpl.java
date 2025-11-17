@@ -5,10 +5,15 @@ import com.app.wooridooribe.entity.Goal;
 import com.app.wooridooribe.entity.Member;
 import com.app.wooridooribe.entity.QCardHistory;
 import com.app.wooridooribe.entity.QMemberCard;
+import com.app.wooridooribe.entity.type.CategoryType;
 import com.app.wooridooribe.entity.type.StatusType;
 import com.app.wooridooribe.exception.CustomException;
 import com.app.wooridooribe.exception.ErrorCode;
 import com.app.wooridooribe.repository.goal.GoalRepository;
+import com.knuddels.jtokkit.Encodings;
+import com.knuddels.jtokkit.api.Encoding;
+import com.knuddels.jtokkit.api.EncodingRegistry;
+import com.knuddels.jtokkit.api.EncodingType;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.messages.Message;
@@ -82,7 +87,7 @@ public class ChatBotServiceImpl implements ChatBotService {
 
     private void initLongTermMemory() {
         // 장기 기억 중복 저장 방지
-        List<Document> existing = vectorStore.similaritySearch(SearchRequest.query("persona").withTopK(10));
+        List<Document> existing = vectorStore.similaritySearch(SearchRequest.query("persona").withTopK(2));
         if (!existing.isEmpty()) return;
 
         try {
@@ -116,7 +121,7 @@ public class ChatBotServiceImpl implements ChatBotService {
         try {
             // 최신 Goal 조회
             List<Goal> goals = Optional.ofNullable(
-                    goalRepository.findAllGoalsByMember(member)
+                    goalRepository.findAllGoalsByMember(member.getId())
             ).orElse(new ArrayList<>());
 
             Goal latestGoal = extractLatestGoal(goals);
@@ -153,7 +158,7 @@ public class ChatBotServiceImpl implements ChatBotService {
                 sb.append("\n### 카테고리별 소비 TOP5\n");
                 summary.top5.forEach(e -> sb.append(String.format(
                         "- %s: %,d원 (%d건)\n",
-                        toKor(e.category),
+                        toKor(String.valueOf(e.category)),
                         e.total,
                         e.count
                 )));
@@ -167,7 +172,7 @@ public class ChatBotServiceImpl implements ChatBotService {
                                 h.getHistoryDate(),
                                 h.getHistoryName(),
                                 h.getHistoryPrice(),
-                                toKor(h.getHistoryCategory())
+                                toKor(String.valueOf(h.getHistoryCategory()))
                         )));
 
                 monthlyContext = sb.toString();
@@ -190,6 +195,10 @@ public class ChatBotServiceImpl implements ChatBotService {
                     new SystemMessage(systemPrompt),
                     new UserMessage(message)
             );
+
+            String promptString = systemPrompt + "\n\n" + message;
+            int tokens = countTokens(promptString);
+            System.out.println("🔥 TOTAL TOKENS = " + tokens);
 
             return chatModel.call(new Prompt(messages))
                     .getResult()
@@ -235,7 +244,7 @@ public class ChatBotServiceImpl implements ChatBotService {
     private List<Document> searchShortTermMemory(String query, Member member) {
         try {
             List<Document> docs = vectorStore.similaritySearch(
-                    SearchRequest.query(query).withTopK(10)
+                    SearchRequest.query(query).withTopK(2)
             );
 
             long now = System.currentTimeMillis();
@@ -313,13 +322,13 @@ public class ChatBotServiceImpl implements ChatBotService {
         int totalAmount = (total != null ? total : 0);
 
         // 카테고리별 합계 + 카운트
-        Map<String, Long> categorySum = histories.stream()
+        Map<CategoryType, Long> categorySum = histories.stream()
                 .collect(Collectors.groupingBy(
                         CardHistory::getHistoryCategory,
                         Collectors.summingLong(CardHistory::getHistoryPrice)
                 ));
 
-        Map<String, Long> categoryCount = histories.stream()
+        Map<CategoryType, Long> categoryCount = histories.stream()
                 .collect(Collectors.groupingBy(
                         CardHistory::getHistoryCategory,
                         Collectors.counting()
@@ -339,7 +348,7 @@ public class ChatBotServiceImpl implements ChatBotService {
         return new MonthlySummary(totalAmount, histories, top5);
     }
 
-    private record CategoryStat(String category, long total, long count) {}
+    private record CategoryStat(CategoryType category, long total, long count) {}
     private record MonthlySummary(int totalAmount, List<CardHistory> histories, List<CategoryStat> top5) {}
 
 
@@ -455,7 +464,7 @@ public class ChatBotServiceImpl implements ChatBotService {
             case "TRAVEL" -> "여행";
             case "CONVENIENCE_STORE" -> "편의점/마트";
             case "FOOD" -> "식비";
-            case "TRANSPORT" -> "교통";
+            case "TRANSPORTATION" -> "교통";
             case "CAFE" -> "카페";
             case "ALCOHOL_ENTERTAINMENT" -> "술/유흥";
             case "HOUSING" -> "주거";
@@ -463,5 +472,11 @@ public class ChatBotServiceImpl implements ChatBotService {
             case "TELECOM" -> "통신";
             default -> category;
         };
+    }
+
+    private int countTokens(String text) {
+        EncodingRegistry registry = Encodings.newDefaultEncodingRegistry();
+        Encoding enc = registry.getEncoding(EncodingType.CL100K_BASE);
+        return enc.countTokens(text);
     }
 }

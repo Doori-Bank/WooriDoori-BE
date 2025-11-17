@@ -12,7 +12,7 @@ import com.app.wooridooribe.exception.CustomException;
 import com.app.wooridooribe.exception.ErrorCode;
 import com.app.wooridooribe.repository.card.CardRepository;
 import com.app.wooridooribe.repository.member.MemberRepository;
-import com.app.wooridooribe.repository.membercard.MemberCardRepository;
+import com.app.wooridooribe.repository.memberCard.MemberCardRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

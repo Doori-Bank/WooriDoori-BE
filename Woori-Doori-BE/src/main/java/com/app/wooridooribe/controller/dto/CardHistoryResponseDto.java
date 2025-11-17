@@ -1,6 +1,7 @@
 package com.app.wooridooribe.controller.dto;
 
 import com.app.wooridooribe.entity.CardHistory;
+import com.app.wooridooribe.entity.type.CategoryType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Getter;
@@ -20,8 +21,8 @@ public class CardHistoryResponseDto {
     @Schema(description = "소비 내역 이름", example = "스타벅스 강남점")
     private String historyName;
 
-    @Schema(description = "소비 카테고리", example = "카페/간식")
-    private String historyCategory;
+    @Schema(description = "소비 카테고리", example = "CAFE")
+    private CategoryType historyCategory;
 
     @Schema(description = "소비 금액", example = "4500")
     private Integer historyPrice;

@@ -5,6 +5,7 @@ import com.app.wooridooribe.entity.type.StatusType;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -42,6 +43,9 @@ public class Member {
     @Column(length = 50)
     private Authority authority;
 
+    @Column(name = "last_login_date")
+    private LocalDateTime lastLoginDate; // 최근 로그인 일시
+
     // 양방향 관계 설정
     @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
@@ -62,4 +66,8 @@ public class Member {
     @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<Notification> notifications = new ArrayList<>();
+
+    @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<CategoryMember> categoryMembers = new ArrayList<>();
 }

@@ -1,4 +1,4 @@
-package com.app.wooridooribe.repository.membercard;
+package com.app.wooridooribe.repository.memberCard;
 
 import com.app.wooridooribe.entity.MemberCard;
 import com.app.wooridooribe.entity.QCard;

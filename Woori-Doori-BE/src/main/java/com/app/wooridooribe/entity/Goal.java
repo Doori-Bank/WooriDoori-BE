@@ -1,5 +1,6 @@
 package com.app.wooridooribe.entity;
 
+import com.app.wooridooribe.entity.aduit.Period;
 import com.app.wooridooribe.entity.type.JobType;
 import jakarta.persistence.*;
 import lombok.*;
@@ -13,7 +14,7 @@ import java.time.LocalDate;
 @AllArgsConstructor
 @Builder
 @Table(name = "tbl_goal")
-public class Goal {
+public class Goal extends Period {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -26,9 +27,6 @@ public class Goal {
     @Column(name = "goal_start_date")
     private LocalDate goalStartDate; // 목표시작날짜
 
-    @Column(name = "previous_goal_money")
-    private Integer previousGoalMoney; // 목표금액 (ERD에서는 DATE 타입으로 되어있지만 실제로는 금액)
-
     @Column(name = "goal_job")
     @Enumerated(EnumType.STRING)
     private JobType goalJob; // 직업
@@ -36,17 +34,20 @@ public class Goal {
     @Column(name = "goal_income")
     private String goalIncome; // 수입
 
-    @Column(name = "goal_achievement_score")
-    private Integer goalAchievementScore; // 성과 점수
-
-    @Column(name = "goal_continuity_score")
-    private Integer goalContinuityScore; // 지속성 점수
-
-    @Column(name = "goal_ratio_score")
-    private Integer goalRatioScore; // 비율 점수
+    @Column(name = "previous_goal_money")
+    private Integer previousGoalMoney; // 목표금액
 
     @Column(name = "goal_stability_score")
-    private Integer goalStabilityScore; // 안정성 점수
+    private Integer goalStabilityScore; // 소비 안정성 점수
+
+    @Column(name = "goal_achievement_score")
+    private Integer goalAchievementScore; // 목표 달성도 점수
+
+    @Column(name = "goal_ratio_score")
+    private Integer goalRatioScore; // 필수/비필수 비율 점수
+
+    @Column(name = "goal_continuity_score")
+    private Integer goalContinuityScore; // 절약 지속성 점수
 
     @Transient
     public Integer getGoalScore() {
@@ -67,4 +68,6 @@ public class Goal {
 
         return Math.round((float) sum);
     }
+
 }
+

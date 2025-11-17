@@ -36,15 +36,14 @@ public class AiConfig {
 
     @Bean
     @ConditionalOnMissingBean
-    public VectorStore vectorStore(ChromaApi chromaApi, EmbeddingModel embeddingModel) {
+    public VectorStore customVectorStore(ChromaApi chromaApi, EmbeddingModel embeddingModel) {
         // ChromaVectorStore 생성자: (EmbeddingModel, ChromaApi, collectionName,
         // initializeSchema)
-        ChromaVectorStore vectorStore = new ChromaVectorStore(
+        return new ChromaVectorStore(
                 embeddingModel,
                 chromaApi,
                 "SpringAiCollection",
-                true // 컬렉션이 없으면 자동 생성
+                true
         );
-        return vectorStore;
     }
 }
