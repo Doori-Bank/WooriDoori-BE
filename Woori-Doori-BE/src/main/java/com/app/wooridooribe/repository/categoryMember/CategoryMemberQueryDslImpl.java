@@ -1,6 +1,7 @@
 package com.app.wooridooribe.repository.categoryMember;
 
 import com.app.wooridooribe.entity.QCategoryMember;
+import com.app.wooridooribe.entity.type.CategoryType;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -14,15 +15,14 @@ public class CategoryMemberQueryDslImpl implements CategoryMemberQueryDsl {
     private final JPAQueryFactory queryFactory;
 
     @Override
-    public List<String> findEssentialCategoryNamesByMemberId(Long memberId) {
+    public List<CategoryType> findEssentialCategoryNamesByMemberId(Long memberId) {
         QCategoryMember categoryMember = QCategoryMember.categoryMember;
 
         return queryFactory
-                .select(categoryMember.category.categoryName)
+                .select(categoryMember.categoryType)
                 .from(categoryMember)
                 .where(
-                        categoryMember.member.id.eq(memberId),
-                        categoryMember.isEssential.isTrue()
+                        categoryMember.member.id.eq(memberId)
                 )
                 .fetch();
     }

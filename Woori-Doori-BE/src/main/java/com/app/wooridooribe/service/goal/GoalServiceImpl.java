@@ -3,6 +3,7 @@ package com.app.wooridooribe.service.goal;
 import com.app.wooridooribe.controller.dto.*;
 import com.app.wooridooribe.entity.Goal;
 import com.app.wooridooribe.entity.Member;
+import com.app.wooridooribe.entity.CategoryMember;
 import com.app.wooridooribe.entity.type.CategoryType;
 import com.app.wooridooribe.entity.type.JobType;
 import com.app.wooridooribe.exception.CustomException;
@@ -10,7 +11,7 @@ import com.app.wooridooribe.exception.ErrorCode;
 import com.app.wooridooribe.repository.cardHistory.CardHistoryRepository;
 import com.app.wooridooribe.repository.goal.GoalRepository;
 import com.app.wooridooribe.repository.member.MemberRepository;
-import com.app.wooridooribe.service.sse.SseService;
+import com.app.wooridooribe.repository.categoryMember.CategoryMemberRepository;
 import com.querydsl.core.Tuple;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,7 +33,7 @@ public class GoalServiceImpl implements GoalService {
     private final GoalRepository goalRepository;
     private final MemberRepository memberRepository;
     private final CardHistoryRepository cardHistoryRepository;
-    private final SseService sseService; // SSE 서비스 (선택사항 - 필요시 주입)
+    private final CategoryMemberRepository categoryMemberRepository;
     
     // 필수 카테고리 목록 (필수/비필수 구분용)
     private static final List<CategoryType> ESSENTIAL_CATEGORIES = Arrays.asList(
@@ -72,25 +73,56 @@ public class GoalServiceImpl implements GoalService {
                 .anyMatch(g -> g.getGoalStartDate().equals(nextMonth));
 
 
+        // 사용자가 선택한 필수 카테고리 목록 (nullable)
+        List<CategoryType> essentialCategoriesFromRequest = setGoalDto.getEssentialCategories();
+
         if (!thisMonthGoalExists) {
             // 이번 달 목표 등록
             setGoalDto.setGoalStartDate(thisMonth);
             Goal goal = setGoalDto.toEntity();
             goal.setMember(member);
+            // 점수는 아직 계산하지 않고 0으로 초기화
+            goal.setGoalAchievementScore(0);
+            goal.setGoalStabilityScore(0);
+            goal.setGoalRatioScore(0);
+            goal.setGoalContinuityScore(0);
             goalRepository.save(goal);
+            
+            // 목표 설정 시 필수 카테고리 설정이 함께 들어온 경우 처리
+            if (essentialCategoriesFromRequest != null) {
+                updateEssentialCategoriesForMember(member, essentialCategoriesFromRequest);
+            }
         } else if (!nextMonthGoalExists) {
-            // 다음 달 목표 등록
+            // 다음 달 목표 등록 (아직 시작 전이므로 점수 계산하지 않음)
             setGoalDto.setGoalStartDate(nextMonth);
             Goal goal = setGoalDto.toEntity();
             goal.setMember(member);
+            // 점수는 아직 계산하지 않고 0으로 초기화
+            goal.setGoalAchievementScore(0);
+            goal.setGoalStabilityScore(0);
+            goal.setGoalRatioScore(0);
+            goal.setGoalContinuityScore(0);
             goalRepository.save(goal);
+            
+            if (essentialCategoriesFromRequest != null) {
+                updateEssentialCategoriesForMember(member, essentialCategoriesFromRequest);
+            }
         } else {
             // 다음 달 목표 수정
             setGoalDto.setGoalStartDate(nextMonth);
             Goal goal = setGoalDto.toEntity();
             goal.setMember(member);
             goal.setId(goals.stream().filter(g -> g.getGoalStartDate().equals(nextMonth)).findFirst().get().getId());
+            // 점수는 아직 계산하지 않고 0으로 초기화
+            goal.setGoalAchievementScore(0);
+            goal.setGoalStabilityScore(0);
+            goal.setGoalRatioScore(0);
+            goal.setGoalContinuityScore(0);
             goalRepository.save(goal);
+            
+            if (essentialCategoriesFromRequest != null) {
+                updateEssentialCategoriesForMember(member, essentialCategoriesFromRequest);
+            }
         }
 
         return GoalResponseDto.builder()
@@ -106,12 +138,76 @@ public class GoalServiceImpl implements GoalService {
                 .orElseThrow(() -> new CustomException(ErrorCode.GOAL_ISNULL));
 
         LocalDate startDate = currentGoal.getGoalStartDate();
+        
+        // 점수 계산 및 업데이트
+        return calculateGoalScoresForMonth(memberId, startDate, currentGoal);
+    }
+    
+    /**
+     * 회원의 필수 카테고리 설정 및 해당 카테고리 결제 내역 총지출 미포함 처리
+     * (목표 설정 시 함께 호출)
+     */
+    private void updateEssentialCategoriesForMember(Member member, List<CategoryType> essentialCategories) {
+        Long memberId = member.getId();
+
+        // 기존 매핑 삭제
+        categoryMemberRepository.deleteByMember(member);
+
+        // 새 매핑 저장
+        List<CategoryMember> newMappings = essentialCategories.stream()
+                .map(cat -> CategoryMember.builder()
+                        .member(member)
+                        .categoryType(cat)
+                        .build())
+                .toList();
+        categoryMemberRepository.saveAll(newMappings);
+
+        // 해당 카테고리의 결제내역을 총지출에서 제외(N) 처리
+        if (!essentialCategories.isEmpty()) {
+            cardHistoryRepository.updateIncludeTotalByMemberAndCategories(memberId, essentialCategories, false);
+        }
+    }
+    
+    /**
+     * 배치 작업용: 점수 계산만 하고 SSE 알림은 전송하지 않음
+     */
+    @Override
+    @Transactional
+    public GoalScoreResponseDto calculateAndUpdateGoalScoresBatch(Long memberId) {
+        Goal currentGoal = goalRepository.findCurrentMonthGoalByMemberId(memberId)
+                .orElse(null);
+        
+        if (currentGoal == null) {
+            log.debug("목표가 없어서 점수 계산 스킵 - memberId: {}", memberId);
+            return null;
+        }
+
+        LocalDate startDate = currentGoal.getGoalStartDate();
+        
+        // 점수 계산 및 업데이트
+        return calculateGoalScoresForMonth(memberId, startDate, currentGoal);
+    }
+    
+    /**
+     * @param memberId 회원 ID
+     * @param goalStartDate 목표 시작일 (월의 첫날)
+     * @param goal 계산할 Goal 엔티티 (null이면 조회)
+     * @return 계산된 점수 DTO
+     */
+    private GoalScoreResponseDto calculateGoalScoresForMonth(Long memberId, LocalDate goalStartDate, Goal goal) {
+        // Goal이 null이면 조회
+        if (goal == null) {
+            goal = goalRepository.findGoalByMemberIdAndStartDate(memberId, goalStartDate)
+                    .orElseThrow(() -> new CustomException(ErrorCode.GOAL_ISNULL));
+        }
+
+        LocalDate startDate = goal.getGoalStartDate();
         LocalDate endDate = startDate.plusDays(30);
-        Integer goalMoneyInteger = currentGoal.getPreviousGoalMoney();
+        Integer goalMoneyInteger = goal.getPreviousGoalMoney();
         // 목표 금액은 만원 단위로 저장되어 있으므로 원 단위로 변환 (* 10000)
         int goalMoney = (goalMoneyInteger != null ? goalMoneyInteger : 0) * 10000;
 
-        // 2. 이번 달 지출 데이터 조회
+        // 이번 달 지출 데이터 조회
         int actualSpending = cardHistoryRepository.getTotalSpentByMemberAndDateRange(
                 memberId, startDate, endDate);
 
@@ -137,7 +233,7 @@ public class GoalServiceImpl implements GoalService {
             }
         }
 
-        // 3. 지난 달 데이터 조회 (지속성 계산용)
+        // 지난 달 데이터 조회 (지속성 계산용)
         LocalDate lastMonthStart = startDate.minusMonths(1);
         LocalDate lastMonthEnd = lastMonthStart.plusDays(30);
 
@@ -153,22 +249,22 @@ public class GoalServiceImpl implements GoalService {
             lastMonthGoal = lastGoal.getPreviousGoalMoney() != null ? lastGoal.getPreviousGoalMoney() * 10000 : null;
         }
 
-        // 4. 4가지 점수 계산
+        // 4가지 점수 계산
         int achievementScore = calculateAchievementScore(goalMoney, actualSpending);
         int stabilityScore = calculateStabilityScore(dailySpending);
         int ratioScore = calculateRatioScore(essentialSpending, nonEssentialSpending);
         int continuityScore = calculateContinuityScore(
                 actualSpending, goalMoney, lastMonthSpending, lastMonthGoal);
 
-        // 5. Goal 엔티티에 저장
-        currentGoal.setGoalAchievementScore(achievementScore);
-        currentGoal.setGoalStabilityScore(stabilityScore);
-        currentGoal.setGoalRatioScore(ratioScore);
-        currentGoal.setGoalContinuityScore(continuityScore);
+        // Goal 엔티티에 저장
+        goal.setGoalAchievementScore(achievementScore);
+        goal.setGoalStabilityScore(stabilityScore);
+        goal.setGoalRatioScore(ratioScore);
+        goal.setGoalContinuityScore(continuityScore);
 
-        goalRepository.save(currentGoal);
+        goalRepository.save(goal);
 
-        // 6. 카테고리별 소비내역 조회
+        // 카테고리별 소비내역 조회
         List<Tuple> categorySpendingList = cardHistoryRepository
                 .getCategorySpendingByMemberAndDateRange(memberId, startDate, endDate);
         
@@ -178,126 +274,10 @@ public class GoalServiceImpl implements GoalService {
                         tuple -> tuple.get(1, Integer.class) != null ? tuple.get(1, Integer.class) : 0
                 ));
 
-        // 7. 총점 계산
+        // 총점 계산
         int totalScore = achievementScore + stabilityScore + ratioScore + continuityScore;
 
-        // 8. DTO 생성
-        GoalScoreResponseDto result = GoalScoreResponseDto.builder()
-                .achievementScore(achievementScore)
-                .stabilityScore(stabilityScore)
-                .ratioScore(ratioScore)
-                .continuityScore(continuityScore)
-                .totalScore(totalScore)
-                .categorySpending(categorySpendingMap)
-                .build();
-        
-        try {
-            // 현재 월 정보 가져오기
-            LocalDate now = LocalDate.now();
-            int month = now.getMonthValue();
-            
-            // 리포트 알림 데이터 생성
-            Map<String, Object> reportNotificationData = new HashMap<>();
-            reportNotificationData.put("title", "두리가 " + month + "월 소비 리포트를 가져왔습니다");
-            reportNotificationData.put("message", "한 달간 소비 내역을 확인하세요");
-            // 리포트 아이콘 (절대 URL 사용 권장)
-            reportNotificationData.put("icon", "https://cloud5-img-storage.s3.ap-northeast-2.amazonaws.com/doori-icon/report.png");
-            reportNotificationData.put("data", result); // 점수 데이터 포함
-            reportNotificationData.put("type", "report");
-            
-            sseService.sendToUser(memberId, "notification", reportNotificationData);
-            log.info("SSE 리포트 알림 전송 - memberId: {}, month: {}", memberId, month);
-        } catch (Exception e) {
-            log.warn("SSE 알림 전송 실패 (무시) - memberId: {}", memberId, e);
-            // SSE 실패해도 메인 로직은 계속 진행
-        }
-        
-        return result;
-    }
-    
-    /**
-     * 배치 작업용: 점수 계산만 하고 SSE 알림은 전송하지 않음
-     */
-    @Override
-    @Transactional
-    public GoalScoreResponseDto calculateAndUpdateGoalScoresBatch(Long memberId) {
-        // calculateAndUpdateGoalScores와 동일한 로직이지만 SSE 알림 없음
-        Goal currentGoal = goalRepository.findCurrentMonthGoalByMemberId(memberId)
-                .orElse(null);
-        
-        if (currentGoal == null) {
-            log.debug("목표가 없어서 점수 계산 스킵 - memberId: {}", memberId);
-            return null;
-        }
-
-        LocalDate startDate = currentGoal.getGoalStartDate();
-        LocalDate endDate = startDate.plusDays(30);
-        Integer goalMoneyInteger = currentGoal.getPreviousGoalMoney();
-        // 목표 금액은 만원 단위로 저장되어 있으므로 원 단위로 변환 (* 10000)
-        int goalMoney = (goalMoneyInteger != null ? goalMoneyInteger : 0) * 10000;
-
-        int actualSpending = cardHistoryRepository.getTotalSpentByMemberAndDateRange(
-                memberId, startDate, endDate);
-
-        List<Integer> dailySpending = cardHistoryRepository.getDailySpendingByMemberAndDateRange(
-                memberId, startDate, endDate);
-
-        List<Tuple> categorySpendingTuples = cardHistoryRepository
-                .getEssentialNonEssentialSpending(memberId, startDate, endDate, ESSENTIAL_CATEGORIES);
-        
-        int essentialSpending = 0;
-        int nonEssentialSpending = 0;
-        
-        for (Tuple tuple : categorySpendingTuples) {
-            String isEssential = tuple.get(0, String.class);
-            Integer amount = tuple.get(1, Integer.class);
-            
-            if ("essential".equals(isEssential)) {
-                essentialSpending = amount != null ? amount : 0;
-            } else if ("nonEssential".equals(isEssential)) {
-                nonEssentialSpending = amount != null ? amount : 0;
-            }
-        }
-
-        LocalDate lastMonthStart = startDate.minusMonths(1);
-        LocalDate lastMonthEnd = lastMonthStart.plusDays(30);
-
-        Goal lastGoal = goalRepository.findGoalByMemberIdAndStartDate(memberId, lastMonthStart)
-                .orElse(null);
-
-        Integer lastMonthSpending = null;
-        Integer lastMonthGoal = null;
-        if (lastGoal != null) {
-            lastMonthSpending = cardHistoryRepository.getTotalSpentByMemberAndDateRange(
-                    memberId, lastMonthStart, lastMonthEnd);
-            // 목표 금액은 만원 단위이므로 원 단위로 변환
-            lastMonthGoal = lastGoal.getPreviousGoalMoney() != null ? lastGoal.getPreviousGoalMoney() * 10000 : null;
-        }
-
-        int achievementScore = calculateAchievementScore(goalMoney, actualSpending);
-        int stabilityScore = calculateStabilityScore(dailySpending);
-        int ratioScore = calculateRatioScore(essentialSpending, nonEssentialSpending);
-        int continuityScore = calculateContinuityScore(
-                actualSpending, goalMoney, lastMonthSpending, lastMonthGoal);
-
-        currentGoal.setGoalAchievementScore(achievementScore);
-        currentGoal.setGoalStabilityScore(stabilityScore);
-        currentGoal.setGoalRatioScore(ratioScore);
-        currentGoal.setGoalContinuityScore(continuityScore);
-
-        goalRepository.save(currentGoal);
-
-        List<Tuple> categorySpendingList = cardHistoryRepository
-                .getCategorySpendingByMemberAndDateRange(memberId, startDate, endDate);
-        
-        Map<CategoryType, Integer> categorySpendingMap = categorySpendingList.stream()
-                .collect(Collectors.toMap(
-                        tuple -> tuple.get(0, CategoryType.class),
-                        tuple -> tuple.get(1, Integer.class) != null ? tuple.get(1, Integer.class) : 0
-                ));
-
-        int totalScore = achievementScore + stabilityScore + ratioScore + continuityScore;
-
+        // DTO 생성
         return GoalScoreResponseDto.builder()
                 .achievementScore(achievementScore)
                 .stabilityScore(stabilityScore)

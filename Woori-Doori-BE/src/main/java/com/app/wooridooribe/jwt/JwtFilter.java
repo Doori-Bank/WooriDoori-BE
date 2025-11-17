@@ -55,12 +55,24 @@ public class JwtFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    // Request Header 에서 토큰 정보를 꺼내오기
+    // Request Header 또는 Cookie에서 토큰 정보를 꺼내오기
     private String resolveToken(HttpServletRequest request) {
+        // 1. Authorization 헤더에서 토큰 확인
         String bearerToken = request.getHeader(AUTHORIZATION_HEADER);
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith(BEARER_PREFIX)) {
             return bearerToken.substring(7);
         }
+        
+        // 2. Cookie에서 토큰 확인 (SSE용)
+        jakarta.servlet.http.Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            for (jakarta.servlet.http.Cookie cookie : cookies) {
+                if ("accessToken".equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
+        }
+        
         return null;
     }
 }

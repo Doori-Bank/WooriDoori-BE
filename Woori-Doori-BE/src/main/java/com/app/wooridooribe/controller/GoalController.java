@@ -17,7 +17,7 @@ import java.util.List;
 @RequestMapping("/goal")
 @RequiredArgsConstructor
 @Slf4j
-@Tag(name = "Goal API", description = "목표 설정 및 수정 관련 API")  // ✅ 컨트롤러 설명
+@Tag(name = "목표", description = "목표 설정 및 수정 관련 API")
 public class GoalController {
 
     private final GoalService goalService;

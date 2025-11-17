@@ -22,17 +22,17 @@ public class GoalScoreScheduler {
      * cron 표현식: 초 분 시 일 월 요일
      * 0 0 2 * * ? = 매일 02:00:00
      */
-    @Scheduled(cron = "0 0 2 * * ?")
-    public void calculateAllUsersScores() {
-        log.info("=== 배치 점수 계산 스케줄러 시작 ===");
+//    @Scheduled(cron = "0 0 2 * * ?")
+    // public void calculateAllUsersScores() {
+    //     log.info("=== 배치 점수 계산 스케줄러 시작 ===");
         
-        try {
-            int processedCount = goalService.calculateAllActiveUsersScores();
-            log.info("=== 배치 점수 계산 완료 - 처리된 유저 수: {} ===", processedCount);
-        } catch (Exception e) {
-            log.error("=== 배치 점수 계산 중 에러 발생 ===", e);
-        }
-    }
+    //     try {
+    //         int processedCount = goalService.calculateAllActiveUsersScores();
+    //         log.info("=== 배치 점수 계산 완료 - 처리된 유저 수: {} ===", processedCount);
+    //     } catch (Exception e) {
+    //         log.error("=== 배치 점수 계산 중 에러 발생 ===", e);
+    //     }
+    // }
     
     /**
      * 테스트용: 매 5분마다 실행 (개발 환경에서만 사용)

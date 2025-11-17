@@ -17,6 +17,15 @@ public interface CardHistoryQueryDsl {
 
     void updateIncludeTotal(Long historyId, boolean includeTotal);
 
+    /**
+     * 특정 회원의 결제 내역 중 지정한 카테고리들의 총지출 포함 여부를 일괄 변경
+     *
+     * @param memberId   회원 ID
+     * @param categories 대상 카테고리 목록
+     * @param includeTotal true 이면 포함(Y), false 이면 미포함(N)
+     */
+    void updateIncludeTotalByMemberAndCategories(Long memberId, List<CategoryType> categories, boolean includeTotal);
+
     void updateCategory(Long historyId, CategoryType newCategory);
 
     void updateDutchpay(Long historyId, int count);

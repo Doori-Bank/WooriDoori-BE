@@ -1,5 +1,6 @@
 package com.app.wooridooribe.entity;
 
+import com.app.wooridooribe.entity.type.CategoryType;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -16,9 +17,9 @@ public class Franchise {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id; // 가맹점 ID
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "category_id")
-    private Category category; // 카테고리 고유번호
+    @Enumerated(EnumType.STRING)
+    @Column(name="category")
+    private CategoryType category; // 카테고리 ENUM
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "file_id")

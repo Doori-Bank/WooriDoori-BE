@@ -1,5 +1,7 @@
 package com.app.wooridooribe.repository.categoryMember;
 
+import com.app.wooridooribe.entity.type.CategoryType;
+
 import java.util.List;
 
 public interface CategoryMemberQueryDsl {
@@ -9,6 +11,6 @@ public interface CategoryMemberQueryDsl {
      * @param memberId 회원 ID
      * @return 필수 카테고리 이름 리스트
      */
-    List<String> findEssentialCategoryNamesByMemberId(Long memberId);
+    List<CategoryType> findEssentialCategoryNamesByMemberId(Long memberId);
 }
 

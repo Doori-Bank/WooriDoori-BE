@@ -67,8 +67,8 @@ public class AuthController {
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패")
     @GetMapping("user")
-
-    public ResponseEntity<ApiResponse<MemberDto>> getUserDetails(Authentication authentication) {
+    public ResponseEntity<ApiResponse<MemberDto>> getUserDetails(
+            @Parameter(hidden = true) Authentication authentication) {
         MemberDetail principal = (MemberDetail) authentication.getPrincipal();
         
         MemberDto memberDto = MemberDto.builder()
@@ -114,7 +114,8 @@ public class AuthController {
     @Operation(summary = "로그아웃", description = "Refresh Token을 삭제하여 로그아웃 처리합니다")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "로그아웃 성공")
     @PostMapping("logout")
-    public ResponseEntity<ApiResponse<Void>> logout(Authentication authentication) {
+    public ResponseEntity<ApiResponse<Void>> logout(
+            @Parameter(hidden = true) Authentication authentication) {
         
         MemberDetail principal = (MemberDetail) authentication.getPrincipal();
         authService.logout(principal.getUsername());

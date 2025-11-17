@@ -92,3 +92,6 @@ springdoc:
   api-docs:
     path: /v3/api-docs
   default-consumes-media-type: application/json
+
+# 프론트엔드 URL 설정
+FRONTEND_URL: http://localhost:5173

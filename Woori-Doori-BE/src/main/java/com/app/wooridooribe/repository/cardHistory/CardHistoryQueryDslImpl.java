@@ -76,6 +76,24 @@ public class CardHistoryQueryDslImpl implements CardHistoryQueryDsl {
 
     @Override
     @Transactional
+    public void updateIncludeTotalByMemberAndCategories(Long memberId, List<CategoryType> categories, boolean includeTotal) {
+        QCardHistory ch = QCardHistory.cardHistory;
+        QMemberCard mc = QMemberCard.memberCard;
+
+        queryFactory
+                .update(ch)
+                .set(ch.historyIncludeTotal, includeTotal ? "Y" : "N")
+                .where(
+                        ch.memberCard.isNotNull(),
+                        ch.memberCard.eq(mc),
+                        mc.member.id.eq(memberId),
+                        ch.historyCategory.in(categories)
+                )
+                .execute();
+    }
+
+    @Override
+    @Transactional
     public void updateCategory(Long historyId, CategoryType newCategory) {
         QCardHistory ch = QCardHistory.cardHistory;
 
