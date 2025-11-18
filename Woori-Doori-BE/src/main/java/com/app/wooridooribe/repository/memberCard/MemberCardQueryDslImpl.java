@@ -12,7 +12,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 @RequiredArgsConstructor
-public class MemberCardRepositoryCustomImpl implements MemberCardRepositoryCustom {
+public class MemberCardQueryDslImpl implements MemberCardQueryDSL {
 
     private final JPAQueryFactory queryFactory;
 
@@ -21,7 +21,7 @@ public class MemberCardRepositoryCustomImpl implements MemberCardRepositoryCusto
     private static final QFile file = QFile.file;
 
     @Override
-    public List<MemberCard> findByMemberIdWithCard(Long memberId) {
+    public List<MemberCard> findMemberCardsByMemberId(Long memberId) {
         return queryFactory
                 .selectFrom(memberCard)
                 .distinct()
@@ -39,8 +39,7 @@ public class MemberCardRepositoryCustomImpl implements MemberCardRepositoryCusto
                 .leftJoin(card.cardImage, file).fetchJoin()
                 .where(
                         memberCard.member.id.eq(memberId),
-                        memberCard.cardNum.eq(cardNum)
-                )
+                        memberCard.cardNum.eq(cardNum))
                 .fetchOne();
 
         return Optional.ofNullable(result);
@@ -58,4 +57,3 @@ public class MemberCardRepositoryCustomImpl implements MemberCardRepositoryCusto
         return Optional.ofNullable(result);
     }
 }
-
