@@ -14,6 +14,7 @@ public enum ErrorCode {
     INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "COMMON-003", "토큰이 유효하지않습니다"),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "COMMON-004", "서버가 점검중입니다"),
     INVALID_MEMBER(HttpStatus.FORBIDDEN, "COMMON-005", "비활성화된 계정입니다"),
+    FILE_NOT_FOUND(HttpStatus.NOT_FOUND, "FILE-001", "파일을 찾을 수 없습니다."),
 
     // 회원 관리 - 본인 인증
     AUTH_FAIL(HttpStatus.BAD_REQUEST, "ACCOUNT-001", "인증 번호가 일치하지 않습니다."),
