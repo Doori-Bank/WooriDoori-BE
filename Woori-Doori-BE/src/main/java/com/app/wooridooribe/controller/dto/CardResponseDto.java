@@ -3,7 +3,6 @@ package com.app.wooridooribe.controller.dto;
 import com.app.wooridooribe.entity.Card;
 import com.app.wooridooribe.entity.MemberCard;
 import com.app.wooridooribe.entity.type.CardType;
-import com.app.wooridooribe.entity.type.YESNO;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Getter;
@@ -36,11 +35,11 @@ public class CardResponseDto {
     @Schema(description = "연회비 2", example = "해외겸용 12,000")
     private String annualFee2;
 
-    public static CardResponseDto from(MemberCard memberCard) {
+    public static CardResponseDto toDTO(MemberCard memberCard) {
         Card card = memberCard.getCard();
 
-        // YESNO enum을 YES/NO 문자열로 변환
-        String cardSvcStr = card.getCardSvc() == YESNO.YES ? "YES" : "NO";
+        // YESNO enum을 문자열로 변환 (enum.name() 사용)
+        String cardSvcStr = card.getCardSvc() != null ? card.getCardSvc().name() : null;
 
         // File 엔티티에서 카드 이미지 URL - file_path에 이미 전체 URL이 있으므로 그대로 사용
         String cardUrl = "";
@@ -60,9 +59,9 @@ public class CardResponseDto {
                 .build();
     }
 
-    public static CardResponseDto fromCard(Card card) {
-        // YESNO enum을 YES/NO 문자열로 변환
-        String cardSvcStr = card.getCardSvc() == YESNO.YES ? "YES" : "NO";
+    public static CardResponseDto toDTO(Card card) {
+        // YESNO enum을 문자열로 변환 (enum.name() 사용)
+        String cardSvcStr = card.getCardSvc() != null ? card.getCardSvc().name() : null;
 
         // File 엔티티에서 카드 이미지 URL - file_path에 이미 전체 URL이 있으므로 그대로 사용
         String cardUrl = "";
