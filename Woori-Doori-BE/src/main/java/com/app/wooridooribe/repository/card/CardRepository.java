@@ -7,7 +7,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
-public interface CardRepository extends JpaRepository<Card, Long> {
+public interface CardRepository extends JpaRepository<Card, Long>, CardQueryDsl {
 
     @Query("SELECT c FROM Card c LEFT JOIN FETCH c.cardImage")
     List<Card> findAllWithImage();
