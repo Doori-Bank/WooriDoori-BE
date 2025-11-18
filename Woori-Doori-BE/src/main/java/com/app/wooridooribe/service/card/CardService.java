@@ -1,6 +1,7 @@
 package com.app.wooridooribe.service.card;
 
 import com.app.wooridooribe.controller.dto.AdminCardCreateRequestDto;
+import com.app.wooridooribe.controller.dto.AdminCardEditRequestDto;
 import com.app.wooridooribe.controller.dto.CardCreateRequestDto;
 import com.app.wooridooribe.controller.dto.CardDeleteRequestDto;
 import com.app.wooridooribe.controller.dto.CardEditRequestDto;
@@ -16,6 +17,8 @@ public interface CardService {
     List<CardResponseDto> getAllCards();
 
     CardResponseDto createCardForAdmin(AdminCardCreateRequestDto request);
+
+    CardResponseDto editCardForAdmin(AdminCardEditRequestDto request);
 
     UserCardResponseDto createUserCard(Long memberId, CardCreateRequestDto request);
 
