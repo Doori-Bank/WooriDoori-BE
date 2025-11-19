@@ -67,4 +67,16 @@ public class GoalQueryDslImpl implements GoalQueryDsl {
                 .orderBy(goal.goalStartDate.asc())
                 .fetch();
     }
+    @Override
+    public List<Goal> findPastGoalsByMember(Long memberId) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+        QGoal goal = QGoal.goal;
+        // QueryDSL로 해당 멤버의 Goal 조회
+        return queryFactory
+                .selectFrom(goal)
+                .where(goal.member.eq(member), goal.goalStartDate.before(LocalDate.now()))
+                .orderBy(goal.goalStartDate.asc())
+                .fetch();
+    }
 }

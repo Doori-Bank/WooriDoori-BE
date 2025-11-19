@@ -661,7 +661,7 @@ public class GoalServiceImpl implements GoalService {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
-        List<Goal> goals = goalRepository.findAllGoalsByMember(memberId);
+        List<Goal> goals = goalRepository.findPastGoalsByMember(memberId);
 
         if (goals == null || goals.isEmpty()) {
             throw new CustomException(ErrorCode.GOAL_ISNULL);
