@@ -18,6 +18,7 @@ import java.util.List;
 public class GoalQueryDslImpl implements GoalQueryDsl {
     private final JPAQueryFactory queryFactory;
     private final MemberRepository memberRepository;
+
     @Override
     public Optional<Goal> findCurrentMonthGoalByMemberId(Long memberId) {
         QGoal goal = QGoal.goal;
@@ -31,6 +32,7 @@ public class GoalQueryDslImpl implements GoalQueryDsl {
                 .fetchOne();
         return Optional.ofNullable(result);
     }
+
     @Override
     public List<Goal> findGoalsForThisAndNextMonth(Member member) {
         QGoal goal = QGoal.goal;
@@ -44,6 +46,7 @@ public class GoalQueryDslImpl implements GoalQueryDsl {
                 )
                 .fetch();
     }
+
     @Override
     public Optional<Goal> findGoalByMemberIdAndStartDate(Long memberId, LocalDate startDate) {
         QGoal goal = QGoal.goal;
@@ -56,6 +59,7 @@ public class GoalQueryDslImpl implements GoalQueryDsl {
                 .fetchOne();
         return Optional.ofNullable(result);
     }
+
     @Override
     public List<Goal> findAllGoalsByMember(Long memberId) {
         Member member = memberRepository.findById(memberId)
@@ -70,14 +74,15 @@ public class GoalQueryDslImpl implements GoalQueryDsl {
     }
 
     @Override
-    public Goal findLatestGoalByMember(Long memberId) {
+    public Optional<Goal> findLatestGoalByMember(Long memberId) {
         QGoal goal = QGoal.goal;
 
-        return queryFactory
+        Goal result = queryFactory
                 .selectFrom(goal)
                 .where(goal.member.id.eq(memberId))
                 .orderBy(goal.goalStartDate.desc())
-                .limit(1)
-                .fetchOne();
+                .fetchOne();  // Goal 또는 null
+
+        return Optional.ofNullable(result);
     }
 }

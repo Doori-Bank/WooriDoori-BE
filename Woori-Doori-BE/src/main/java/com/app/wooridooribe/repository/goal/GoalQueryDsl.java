@@ -19,5 +19,5 @@ public interface GoalQueryDsl {
 
     List<Goal> findAllGoalsByMember(Long memberId);
 
-    Goal findLatestGoalByMember(Long memberId);
+    Optional<Goal> findLatestGoalByMember(Long memberId);
 }
