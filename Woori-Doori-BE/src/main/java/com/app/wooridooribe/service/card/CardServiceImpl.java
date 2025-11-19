@@ -83,12 +83,7 @@ public class CardServiceImpl implements CardService {
                     .orElseThrow(() -> new CustomException(ErrorCode.FILE_NOT_FOUND));
         }
 
-        // 최대 ID 조회 후 +1하여 새 ID 생성
-        Long maxCardId = cardRepository.findMaxCardId();
-        Long newCardId = maxCardId + 1;
-
         Card newCard = Card.builder()
-                .id(newCardId)
                 .cardName(request.getCardName())
                 .cardBenefit(request.getCardBenefit())
                 .cardSvc(request.getCardSvc())
