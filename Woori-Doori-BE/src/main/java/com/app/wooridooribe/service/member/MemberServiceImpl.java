@@ -3,6 +3,7 @@ package com.app.wooridooribe.service.member;
 import com.app.wooridooribe.controller.dto.MemberResponseDto;
 import com.app.wooridooribe.entity.CategoryMember;
 import com.app.wooridooribe.entity.Member;
+import com.app.wooridooribe.entity.type.Authority;
 import com.app.wooridooribe.entity.type.CategoryType;
 import com.app.wooridooribe.exception.CustomException;
 import com.app.wooridooribe.exception.ErrorCode;
@@ -30,7 +31,7 @@ public class MemberServiceImpl implements MemberService {
     @Transactional(readOnly = true)
     public List<MemberResponseDto> getAllMembers() {
         List<Member> members = memberRepository.findAll();
-        
+
         return members.stream()
                 .map(MemberResponseDto::from)
                 .collect(Collectors.toList());
@@ -41,7 +42,7 @@ public class MemberServiceImpl implements MemberService {
     public MemberResponseDto getMemberByIdForAdmin(Long memberId) {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
-        
+
         return MemberResponseDto.from(member);
     }
 
@@ -67,5 +68,26 @@ public class MemberServiceImpl implements MemberService {
         if (!essentialCategories.isEmpty()) {
             cardHistoryRepository.updateIncludeTotalByMemberAndCategories(memberId, essentialCategories, false);
         }
+    }
+
+    @Override
+    @Transactional
+    public MemberResponseDto updateMemberAuthority(String memberId, Authority authority) {
+        log.info("회원 권한 변경 요청: memberId={}, authority={}", memberId, authority);
+
+        Member member = memberRepository.findByMemberId(memberId)
+                .orElseThrow(() -> {
+                    log.warn("회원 권한 변경 실패: 회원을 찾을 수 없음 - memberId={}", memberId);
+                    return new CustomException(ErrorCode.USER_NOT_FOUND);
+                });
+
+        // 권한 변경
+        member.setAuthority(authority);
+        Member savedMember = memberRepository.save(member);
+
+        log.info("회원 권한 변경 완료: memberId={}, memberName={}, authority={}",
+                savedMember.getMemberId(), savedMember.getMemberName(), savedMember.getAuthority());
+
+        return MemberResponseDto.from(savedMember);
     }
 }
