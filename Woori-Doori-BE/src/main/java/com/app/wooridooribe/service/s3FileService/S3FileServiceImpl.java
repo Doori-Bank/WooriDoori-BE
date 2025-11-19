@@ -37,10 +37,9 @@ public class S3FileServiceImpl implements S3FileService {
 
         // S3 클라이언트 설정
         s3Client = S3Client.builder()
-                .region(Region.of(region))  // region 설정
+                .region(Region.of(region)) // region 설정
                 .credentialsProvider(StaticCredentialsProvider.create(awsCredentials))
                 .build();
-
 
     }
 
@@ -53,26 +52,70 @@ public class S3FileServiceImpl implements S3FileService {
         String uniqueFileName = uuid.toString().replaceAll("-", "");
 
         String fileOriName = multipartFile.getOriginalFilename();
-        String fileExtension = fileOriName.substring(fileOriName.lastIndexOf(".")); // 확장자 추출
+        String fileExtension = "";
+        if (fileOriName != null && fileOriName.contains(".")) {
+            fileExtension = fileOriName.substring(fileOriName.lastIndexOf(".")); // 확장자 추출
+        }
 
         String fileName = uniqueFileName + fileExtension;
 
-            // PutObjectRequest로 S3에 파일 업로드
-            PutObjectRequest putObjectRequest = PutObjectRequest.builder()
-                    .bucket(bucket)
-                    .key(fileName)
-                    .acl(ObjectCannedACL.PUBLIC_READ)  // 공개 읽기 권한
-                    .contentType(multipartFile.getContentType())
-                    .build();
+        // PutObjectRequest로 S3에 파일 업로드
+        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                .bucket(bucket)
+                .key(fileName)
+                .acl(ObjectCannedACL.PUBLIC_READ) // 공개 읽기 권한
+                .contentType(multipartFile.getContentType())
+                .build();
 
-            // 파일 업로드
-            s3Client.putObject(putObjectRequest, RequestBody.fromInputStream(multipartFile.getInputStream(), multipartFile.getSize()));
+        // 파일 업로드
+        s3Client.putObject(putObjectRequest,
+                RequestBody.fromInputStream(multipartFile.getInputStream(), multipartFile.getSize()));
 
-            // 업로드한 파일의 URL
-            String fileUrl = s3Client.utilities().getUrl(GetUrlRequest.builder().bucket(bucket).key(fileName).build()).toString();
+        // 업로드한 파일의 URL
+        String fileUrl = s3Client.utilities().getUrl(GetUrlRequest.builder().bucket(bucket).key(fileName).build())
+                .toString();
 
-            // 업로드한 파일의 URL 과 Name 반환
-            return new UploadedFileInfoDto(fileUrl, fileName);
+        // 업로드한 파일의 URL 과 Name 반환
+        return new UploadedFileInfoDto(fileUrl, fileName);
+
+    }
+
+    // 파일 업로드 (폴더 경로 지정)
+    public UploadedFileInfoDto uploadImage(MultipartFile multipartFile, String folderPath) throws IOException {
+        log.info("uploadImage() with folderPath: {}", folderPath);
+
+        // 파일 확장자 포함한 고유 이름 생성
+        UUID uuid = UUID.randomUUID();
+        String uniqueFileName = uuid.toString().replaceAll("-", "");
+
+        String fileOriName = multipartFile.getOriginalFilename();
+        String fileExtension = "";
+        if (fileOriName != null && fileOriName.contains(".")) {
+            fileExtension = fileOriName.substring(fileOriName.lastIndexOf(".")); // 확장자 추출
+        }
+
+        // 폴더 경로가 마지막에 /로 끝나지 않으면 추가
+        String normalizedFolderPath = folderPath.endsWith("/") ? folderPath : folderPath + "/";
+        String fileName = normalizedFolderPath + uniqueFileName + fileExtension;
+
+        // PutObjectRequest로 S3에 파일 업로드
+        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                .bucket(bucket)
+                .key(fileName)
+                .acl(ObjectCannedACL.PUBLIC_READ) // 공개 읽기 권한
+                .contentType(multipartFile.getContentType())
+                .build();
+
+        // 파일 업로드
+        s3Client.putObject(putObjectRequest,
+                RequestBody.fromInputStream(multipartFile.getInputStream(), multipartFile.getSize()));
+
+        // 업로드한 파일의 URL
+        String fileUrl = s3Client.utilities().getUrl(GetUrlRequest.builder().bucket(bucket).key(fileName).build())
+                .toString();
+
+        // 업로드한 파일의 URL 과 Name 반환
+        return new UploadedFileInfoDto(fileUrl, fileName);
 
     }
 

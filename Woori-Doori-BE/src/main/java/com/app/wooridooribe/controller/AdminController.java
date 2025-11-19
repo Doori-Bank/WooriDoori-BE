@@ -5,6 +5,7 @@ import com.app.wooridooribe.controller.dto.AdminCardEditRequestDto;
 import com.app.wooridooribe.controller.dto.AdminDiaryNotificationRequestDto;
 import com.app.wooridooribe.controller.dto.AdminReportNotificationRequestDto;
 import com.app.wooridooribe.controller.dto.ApiResponse;
+import com.app.wooridooribe.controller.dto.UploadedFileInfoDto;
 import com.app.wooridooribe.controller.dto.CardResponseDto;
 import com.app.wooridooribe.controller.dto.MemberResponseDto;
 import com.app.wooridooribe.controller.dto.NotificationSendRequestDto;
@@ -15,6 +16,7 @@ import com.app.wooridooribe.repository.member.MemberRepository;
 import com.app.wooridooribe.service.member.MemberService;
 import com.app.wooridooribe.service.card.CardService;
 import com.app.wooridooribe.service.sse.SseService;
+import com.app.wooridooribe.service.s3FileService.S3FileService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -22,8 +24,10 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -39,6 +43,7 @@ public class AdminController {
     private final CardService cardService;
     private final SseService sseService;
     private final MemberRepository memberRepository;
+    private final S3FileService s3FileService;
 
     @Operation(summary = "전체 회원 조회", description = "모든 회원 정보를 조회합니다 (관리자 전용)")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공")
@@ -72,11 +77,63 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.res(200, "카드 정보를 불러왔습니다!", cards));
     }
 
+    @Operation(summary = "S3 카드 배너 이미지 업로드 테스트", description = "카드 배너 이미지를 S3의 card_banner 폴더에 업로드하여 테스트합니다 (관리자 전용)")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "업로드 성공")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "권한 없음")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류")
+    @PostMapping(value = "/upload/card-banner", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<UploadedFileInfoDto>> uploadCardBannerImage(
+            @Parameter(description = "업로드할 카드 배너 이미지 파일", required = true) @RequestParam("file") MultipartFile file) {
+        log.info("관리자 - S3 카드 배너 이미지 업로드 요청 수신: fileName={}, fileSize={}",
+                file.getOriginalFilename(), file.getSize());
+
+        try {
+            UploadedFileInfoDto uploadedFile = s3FileService.uploadImage(file, "card_banner");
+            log.info("관리자 - S3 카드 배너 이미지 업로드 성공: fileUrl={}, fileName={}",
+                    uploadedFile.getFileUrl(), uploadedFile.getFileName());
+            return ResponseEntity.ok(ApiResponse.res(200, "카드 배너 이미지가 성공적으로 업로드되었습니다!", uploadedFile));
+        } catch (Exception e) {
+            log.error("관리자 - S3 카드 배너 이미지 업로드 실패: {}", e.getMessage(), e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.<UploadedFileInfoDto>builder()
+                            .statusCode(500)
+                            .errorResultMsg("카드 배너 이미지 업로드에 실패했습니다: " + e.getMessage())
+                            .build());
+        }
+    }
+
+    @Operation(summary = "S3 카드 이미지 업로드 테스트", description = "카드 이미지를 S3의 card_images 폴더에 업로드하여 테스트합니다 (관리자 전용)")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "업로드 성공")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "권한 없음")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류")
+    @PostMapping(value = "/upload/card-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<UploadedFileInfoDto>> uploadCardImage(
+            @Parameter(description = "업로드할 카드 이미지 파일", required = true) @RequestParam("file") MultipartFile file) {
+        log.info("관리자 - S3 카드 이미지 업로드 요청 수신: fileName={}, fileSize={}",
+                file.getOriginalFilename(), file.getSize());
+
+        try {
+            UploadedFileInfoDto uploadedFile = s3FileService.uploadImage(file, "card_images");
+            log.info("관리자 - S3 카드 이미지 업로드 성공: fileUrl={}, fileName={}",
+                    uploadedFile.getFileUrl(), uploadedFile.getFileName());
+            return ResponseEntity.ok(ApiResponse.res(200, "카드 이미지가 성공적으로 업로드되었습니다!", uploadedFile));
+        } catch (Exception e) {
+            log.error("관리자 - S3 카드 이미지 업로드 실패: {}", e.getMessage(), e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.<UploadedFileInfoDto>builder()
+                            .statusCode(500)
+                            .errorResultMsg("카드 이미지 업로드에 실패했습니다: " + e.getMessage())
+                            .build());
+        }
+    }
+
     @Operation(summary = "카드 신규 등록", description = "새로운 카드를 tbl_card에 등록합니다 (관리자 전용)")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "등록 성공")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "권한 없음")
-    @PostMapping("/putcard")
+    @PostMapping("/createCard")
     public ResponseEntity<ApiResponse<CardResponseDto>> createCard(
             @Parameter(description = "카드 생성 요청 정보", required = true) @Valid @RequestBody AdminCardCreateRequestDto requestDto) {
         log.info("관리자 - 카드 생성 요청 수신: cardName={}", requestDto.getCardName());
@@ -95,6 +152,19 @@ public class AdminController {
         log.info("관리자 - 카드 수정 요청 수신: cardId={}", requestDto.getCardId());
         CardResponseDto updatedCard = cardService.editCardForAdmin(requestDto);
         return ResponseEntity.ok(ApiResponse.res(200, "카드가 성공적으로 수정되었습니다!", updatedCard));
+    }
+
+    @Operation(summary = "카드 삭제 (Soft Delete)", description = "카드를 삭제합니다. status를 UNABLE로 변경하여 soft delete를 수행합니다 (관리자 전용)")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "삭제 성공")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "카드를 찾을 수 없음")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "410", description = "이미 삭제된 카드")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "권한 없음")
+    @DeleteMapping("/deleteCard/{cardId}")
+    public ResponseEntity<ApiResponse<Void>> deleteCard(
+            @Parameter(description = "삭제할 카드 ID", required = true) @PathVariable Long cardId) {
+        log.info("관리자 - 카드 삭제 요청 수신: cardId={}", cardId);
+        cardService.deleteCardForAdmin(cardId);
+        return ResponseEntity.ok(ApiResponse.res(200, "카드가 성공적으로 삭제되었습니다."));
     }
 
     @Operation(summary = "특정 사용자에게 알림 전송", description = "특정 사용자에게 SSE를 통해 알림을 전송합니다 (관리자 전용)")
