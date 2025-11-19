@@ -20,6 +20,8 @@ public interface CardService {
 
     CardResponseDto editCardForAdmin(AdminCardEditRequestDto request);
 
+    void deleteCardForAdmin(Long cardId);
+
     UserCardResponseDto createUserCard(Long memberId, CardCreateRequestDto request);
 
     void deleteCard(Long memberId, CardDeleteRequestDto request);

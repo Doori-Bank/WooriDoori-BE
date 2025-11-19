@@ -39,10 +39,11 @@ public class AdminCardCreateRequestDto {
     @Schema(description = "서비스 여부", example = "YES")
     private YESNO cardSvc;
 
-    @NotNull
-    @Schema(description = "카드 이미지 파일 ID", example = "1234")
+    // 서버에서 자동 설정 (사용자 입력 불필요)
+    @Schema(description = "카드 이미지 파일 ID (서버에서 자동 설정)", example = "1234", hidden = true)
     private Long cardImageFileId;
 
-    @Schema(description = "카드 배너 이미지 파일 ID", example = "5678")
+    // 서버에서 자동 설정 (사용자 입력 불필요)
+    @Schema(description = "카드 배너 이미지 파일 ID (서버에서 자동 설정)", example = "5678", hidden = true)
     private Long cardBannerFileId;
 }
