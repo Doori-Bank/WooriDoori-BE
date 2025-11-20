@@ -287,14 +287,24 @@ public class CardServiceImpl implements CardService {
 
             memberCardRepository.save(memberCard);
 
+            // 저장 후 재조회하여 카드 이미지 포함하여 최신 정보 가져오기
             memberCard = memberCardRepository.findByMemberIdAndCardNum(safeMemberId, cardNum)
-                    .orElse(memberCard);
+                    .orElseThrow(() -> new CustomException(ErrorCode.CARD_ISNULL));
 
-            log.info("최종 조회 후 - memberCard member: {}",
-                    memberCard.getMember() != null ? memberCard.getMember().getId() : "null");
+            log.info("최종 조회 후 - memberCard member: {}, cardImage: {}",
+                    memberCard.getMember() != null ? memberCard.getMember().getId() : "null",
+                    memberCard.getCard() != null && memberCard.getCard().getCardImage() != null 
+                            ? memberCard.getCard().getCardImage().getFilePath() : "null");
         } else {
             // 기존 카드가 없으면 에러 (카드번호로 Card를 식별할 수 없으므로)
             throw new CustomException(ErrorCode.CARD_ISNULL);
+        }
+
+        // 카드 이미지가 제대로 로드되었는지 확인
+        if (memberCard.getCard() == null || memberCard.getCard().getCardImage() == null) {
+            log.warn("카드 이미지가 로드되지 않았습니다. memberCardId: {}, cardId: {}", 
+                    memberCard.getId(), 
+                    memberCard.getCard() != null ? memberCard.getCard().getId() : "null");
         }
 
         return UserCardResponseDto.from(memberCard);
@@ -350,24 +360,78 @@ public class CardServiceImpl implements CardService {
     public CardRecommendResponseDto recommendCards(Long memberId) {
         log.info("카드 추천 요청 - memberId: {}", memberId);
 
-        // 1. 현재 년/월 기준으로 사용자의 결제 내역에서 카테고리별 소비 금액 조회
+        // 1. 신규 가입자 확인: 전체 기간 결제 내역이 있는지 확인
+        // 과거 충분히 먼 날짜부터 현재까지의 결제 내역을 조회하여 신규 가입자 여부 판단
         LocalDate today = LocalDate.now();
+        LocalDate startDateForNewUserCheck = LocalDate.of(2000, 1, 1); // 전체 기간 체크용 과거 날짜
+        LocalDate endDateForNewUserCheck = today;
+
+        List<Tuple> allTimeCategorySpendingList = cardHistoryRepository
+                .getCategorySpendingByMemberAndDateRange(memberId, startDateForNewUserCheck, endDateForNewUserCheck);
+
+        // 신규 가입자(결제 내역이 전혀 없는 경우) 전체 카드 중 인기 top 4 추천
+        if (allTimeCategorySpendingList == null || allTimeCategorySpendingList.isEmpty()) {
+            log.info("카드 추천 - 신규 가입자입니다. 전체 인기 카드 top 4를 추천합니다. memberId: {}", memberId);
+
+            // 전체 카드 중 인기 top 4 조회
+            List<Tuple> popularCardsOverall = cardRepository.findPopularCardsOverall(4);
+
+            if (popularCardsOverall == null || popularCardsOverall.isEmpty()) {
+                log.warn("카드 추천 - 추천할 카드가 없습니다. memberId: {}", memberId);
+                return CardRecommendResponseDto.builder()
+                        .topCategory(null)
+                        .cards(List.of())
+                        .build();
+            }
+
+            // 카드 ID 추출
+            List<Long> cardIds = popularCardsOverall.stream()
+                    .map(tuple -> tuple.get(0, Long.class))
+                    .collect(Collectors.toList());
+
+            // 카드 정보 조회
+            List<Card> recommendedCards = cardRepository.findCardsByIdIn(cardIds);
+
+            // ID 순서대로 정렬
+            List<Card> sortedCards = cardIds.stream()
+                    .map(cardId -> recommendedCards.stream()
+                            .filter(card -> card.getId().equals(cardId))
+                            .findFirst()
+                            .orElse(null))
+                    .filter(card -> card != null)
+                    .collect(Collectors.toList());
+
+            // CardResponseDto로 변환
+            List<CardResponseDto> cardResponseDtos = sortedCards.stream()
+                    .map(CardResponseDto::toDTO)
+                    .collect(Collectors.toList());
+
+            log.info("신규 가입자 카드 추천 완료 - memberId: {}, 추천된 카드 수: {}", memberId, cardResponseDtos.size());
+
+            return CardRecommendResponseDto.builder()
+                    .topCategory(null)
+                    .cards(cardResponseDtos)
+                    .build();
+        }
+
+        // 2. 기존 사용자: 현재 년/월 기준으로 사용자의 결제 내역에서 카테고리별 소비 금액 조회
         LocalDate startDate = YearMonth.from(today).atDay(1); // 이번 달 1일
         LocalDate endDate = YearMonth.from(today).atEndOfMonth(); // 이번 달 마지막 날
 
-        // 2. 카테고리별 소비 금액 조회 (TOP 1 추출)
+        // 3. 카테고리별 소비 금액 조회 (TOP 1 추출)
         List<Tuple> categorySpendingList = cardHistoryRepository
                 .getCategorySpendingByMemberAndDateRange(memberId, startDate, endDate);
 
+        // 이번 달 결제 내역이 없는 경우 (전체 기간에는 결제 내역이 있지만 이번 달에는 없음)
         if (categorySpendingList == null || categorySpendingList.isEmpty()) {
-            log.warn("카드 추천 - 결제 내역이 없습니다. memberId: {}", memberId);
+            log.warn("카드 추천 - 이번 달 결제 내역이 없습니다. memberId: {}", memberId);
             return CardRecommendResponseDto.builder()
                     .topCategory(null)
                     .cards(List.of())
                     .build();
         }
 
-        // 3. TOP 1 카테고리 추출
+        // 4. TOP 1 카테고리 추출
         Tuple topCategoryTuple = categorySpendingList.get(0);
         CategoryType topCategory = topCategoryTuple.get(0, CategoryType.class);
 

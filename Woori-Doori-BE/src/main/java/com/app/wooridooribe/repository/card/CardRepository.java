@@ -14,8 +14,10 @@ public interface CardRepository extends JpaRepository<Card, Long>, CardQueryDsl 
 
     /**
      * 카드 ID 리스트로 카드 정보를 조회합니다.
+     * cardImage와 cardBanner를 함께 fetch합니다.
      */
     @Query("SELECT c FROM Card c " +
+            "LEFT JOIN FETCH c.cardImage " +
             "LEFT JOIN FETCH c.cardBanner " +
             "WHERE c.id IN :cardIds")
     List<Card> findCardsByIdIn(@Param("cardIds") List<Long> cardIds);
