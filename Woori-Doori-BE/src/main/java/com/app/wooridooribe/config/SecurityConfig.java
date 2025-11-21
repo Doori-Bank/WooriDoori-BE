@@ -21,7 +21,6 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
-import java.util.Collections;
 
 @EnableWebSecurity
 @Configuration
@@ -34,6 +33,9 @@ public class SecurityConfig {
     @Value("${FRONTEND_URL}")
     private String frontendUrl;
 
+    @Value("${DOORIBANK_URL}")
+    private String dooriBankUrl;
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -43,9 +45,9 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // 허용할 오리진 설정 (프론트엔드 주소)
-        configuration.setAllowedOrigins(Collections.singletonList(frontendUrl));
-        
+        // 허용할 오리진 설정 (프론트엔드 주소 + 두리뱅크 주소)
+        configuration.setAllowedOrigins(Arrays.asList(frontendUrl, dooriBankUrl));
+
         // 허용할 HTTP 메서드
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         
@@ -95,6 +97,8 @@ public class SecurityConfig {
                         .requestMatchers("/ws/**").permitAll() // WebSocket 경로 허용
                         .requestMatchers("/sse/**").authenticated() // SSE 경로는 인증 필요
                         .requestMatchers("/files/**").permitAll() // 파일 경로 허용
+                        .requestMatchers("/history/calendar/sync").permitAll()
+                        .requestMatchers("/history/calendar/sync").permitAll() // 두리뱅킹 결제 동기화 경로 허용
                         .requestMatchers("/swagger-ui.html","/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**").permitAll() // Swagger UI
                         .requestMatchers("/member/**").hasRole("USER") // 나머지 회원 경로는 USER 권한 필요
                         .requestMatchers("/admin/**").hasRole("ADMIN") // 관리자 경로는 ADMIN 권한 필요

@@ -52,7 +52,7 @@ public class AuthController {
             @Parameter(description = "중복 체크할 이메일", required = true)
             @RequestParam String memberId) {
         boolean isAvailable = authService.checkId(memberId);
-        return ResponseEntity.ok(ApiResponse.res(200, "사용 가능한 이메일입니다"));
+        return ResponseEntity.ok(ApiResponse.res(200, "사용 가능한 이메일입니다", isAvailable));
     }
 
     @Operation(summary = "토큰 재발급", description = "Refresh Token으로 새로운 Access Token을 발급받습니다")
@@ -94,9 +94,9 @@ public class AuthController {
     @PostMapping("send-verification")
     public ResponseEntity<ApiResponse<Void>> sendVerificationCode(
             @Parameter(description = "인증번호를 받을 이메일", required = true)
-            @RequestBody EmailVerificationDto emailDto) {
+            @RequestBody String email) {
         
-        mailService.sendVerificationCode(emailDto.getEmail());
+        mailService.sendVerificationCode(email);
         return ResponseEntity.ok(ApiResponse.res(200, "인증번호가 발송되었습니다. 이메일을 확인해주세요."));
     }
     

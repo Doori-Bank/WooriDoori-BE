@@ -1,0 +1,89 @@
+spring:
+  application:
+    name: WooriDoori-BE-Test
+  timezone: Asia/Seoul
+
+  datasource:
+    db1:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      jdbc-url: ${DB1_URL}
+      username: ${DB1_USERNAME}
+      password: ${DB1_PASSWORD}
+      hikari:
+        maximum-pool-size: 20
+        minimum-idle: 5
+        connection-timeout: 30000
+        idle-timeout: 600000
+        max-lifetime: 1800000
+        leak-detection-threshold: 60000
+    db2:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      jdbc-url: ${DB2_URL}
+      username: ${DB2_USERNAME}
+      password: ${DB2_PASSWORD}
+      hikari:
+        maximum-pool-size: 20
+        minimum-idle: 5
+        connection-timeout: 30000
+        idle-timeout: 600000
+        max-lifetime: 1800000
+        leak-detection-threshold: 60000
+
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+  jackson:
+    time-zone: Asia/Seoul
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    database-platform: org.hibernate.dialect.MySQL8Dialect
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQL8Dialect
+    show-sql: false
+
+  # Redis 설정
+  data:
+    redis:
+      host: ${REDIS_URL}
+      port: ${REDIS_PORT}
+      password:
+      timeout: 6000ms
+
+  # Mail 설정
+  mail:
+    host: smtp.naver.com
+    port: 465
+    username: ${NAVER_MAIL}
+    password: ${NAVER_PW}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.ssl.enable: true
+      mail.smtp.ssl.trust: smtp.naver.com
+
+jwt:
+  secret: ${JWT}
+
+aws:
+  s3:
+    bucket: ${S3_BUCKET}
+    accessKey: ${S3_ACCESS_KEY}
+    secretKey: ${S3_SECRET_KEY}
+    client: ${S3_CLIENT}
+    region: ${S3_REGION}
+
+# Swagger/OpenAPI 설정
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+  api-docs:
+    path: /v3/api-docs
+  default-consumes-media-type: application/json
+

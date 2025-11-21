@@ -2,10 +2,12 @@ package com.app.wooridooribe.repository.cardHistory;
 
 import com.app.wooridooribe.controller.dto.CardHistorySummaryResponseDto;
 import com.app.wooridooribe.entity.CardHistory;
+import com.app.wooridooribe.entity.QCard;
 import com.app.wooridooribe.entity.QCardHistory;
 import com.app.wooridooribe.entity.QMemberCard;
 import com.app.wooridooribe.entity.type.CategoryType;
 import com.app.wooridooribe.entity.type.StatusType;
+import com.app.wooridooribe.entity.type.YESNO;
 import com.querydsl.core.Tuple;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
@@ -144,6 +146,11 @@ public class CardHistoryQueryDslImpl implements CardHistoryQueryDsl {
                 )
                 .fetchOne();
         
+        // 데이터가 없을 경우 0으로 설정 (SUM 결과가 null일 수 있음)
+        if (totalSpent == null) {
+            totalSpent = 0;
+        }
+        
         log.info("getTotalSpentByMemberAndDateRange - memberId: {}, startDate: {}, endDate: {}, totalSpent: {}", 
                 memberId, startDate, endDate, totalSpent);
         
@@ -174,10 +181,10 @@ public class CardHistoryQueryDslImpl implements CardHistoryQueryDsl {
     }
 
     @Override
-    public List<Tuple> getTopUsedCardsByMemberAndDateRange(Long memberId, LocalDate startDate, LocalDate endDate) {
+    public List<Tuple> getTopUsedCards() {
         QCardHistory history = QCardHistory.cardHistory;
         QMemberCard memberCard = QMemberCard.memberCard;
-
+        QCard card = QCard.card;
         return queryFactory
                 .select(
                         memberCard.card.id,
@@ -185,10 +192,9 @@ public class CardHistoryQueryDslImpl implements CardHistoryQueryDsl {
                 )
                 .from(history)
                 .join(history.memberCard, memberCard)
+                .join(memberCard.card, card)
                 .where(
-                        memberCard.member.id.eq(memberId),
-                        history.historyDate.between(startDate, endDate),
-                        history.historyIncludeTotal.eq("Y")
+                        card.cardSvc.eq(YESNO.YES)
                 )
                 .groupBy(memberCard.card.id)
                 .orderBy(history.id.count().desc())

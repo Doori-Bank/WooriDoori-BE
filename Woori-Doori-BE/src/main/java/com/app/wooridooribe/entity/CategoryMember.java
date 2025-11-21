@@ -15,7 +15,7 @@ public class CategoryMember {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id; // 카테고리-멤버 중간테이블 ID
+    private Long id; // 카테고리-멤버 중간테이블
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "member_id", nullable = false)

@@ -61,6 +61,11 @@ public enum ErrorCode {
     HISTORY_DUTCHPAY_UPDATE_FAIL(HttpStatus.INTERNAL_SERVER_ERROR, "HISTORY-010", "더치페이 인원 수정에 실패했습니다."),
     HISTORY_PRICE_UPDATE_FAIL(HttpStatus.INTERNAL_SERVER_ERROR, "HISTORY-011", "금액 수정에 실패했습니다."),
     HISTORY_INVALID_PRICE(HttpStatus.BAD_REQUEST, "HISTORY-012", "유효하지 않은 금액 값입니다."),
+    
+    // 은행 계좌 내역
+    BANK_HISTORY_NOT_FOUND(HttpStatus.NOT_FOUND, "BANK-001", "은행 계좌 내역을 찾을 수 없습니다."),
+    BANK_ACCOUNT_MISMATCH(HttpStatus.BAD_REQUEST, "BANK-002", "계좌번호가 일치하지 않습니다."),
+    BANK_SYNC_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "BANK-003", "은행 계좌 내역 동기화에 실패했습니다."),
 
     // 소비 일기
     DIARY_INSERT_INVALID(HttpStatus.BAD_REQUEST, "DIARY-001", "일기가 너무 깁니다."),
@@ -107,3 +112,4 @@ public enum ErrorCode {
     private final String errorCode;
     private final String errorMsg;
 }
+

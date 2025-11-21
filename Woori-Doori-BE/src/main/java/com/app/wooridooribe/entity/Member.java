@@ -23,14 +23,19 @@ public class Member {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "phone")
     private String phone;
 
+    @Column(name = "password")
     private String password;
 
+    @Column(name = "member_id")
     private String memberId;
 
+    @Column(name = "birth_date")
     private String birthDate;
 
+    @Column(name = "birth_back")
     private String birthBack;
 
     @Column(name = "member_name")

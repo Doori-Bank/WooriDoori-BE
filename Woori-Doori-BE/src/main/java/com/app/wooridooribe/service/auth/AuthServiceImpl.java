@@ -130,6 +130,7 @@ public class AuthServiceImpl implements AuthService {
             
             return LoginResponseDto.builder()
                     .name(memberDetail.getName())
+                    .authority(memberDetail.getMember().getAuthority())
                     .tokens(tokens)
                     .build();
                     
@@ -256,7 +257,17 @@ public class AuthServiceImpl implements AuthService {
         member.setPassword(encodedPassword);
         memberRepository.save(member);
         
-        log.info("비밀번호 재설정 완료: {}", resetPasswordDto.getMemberId());
+        // 저장 후 검증: 저장된 비밀번호가 올바르게 인코딩되었는지 확인
+        Member savedMember = memberRepository.findByMemberId(resetPasswordDto.getMemberId())
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+        boolean passwordMatches = passwordEncoder.matches(tempPassword, savedMember.getPassword());
+        
+        if (!passwordMatches) {
+            log.error("비밀번호 재설정 후 검증 실패: {} - 임시 비밀번호와 저장된 비밀번호가 일치하지 않습니다.", resetPasswordDto.getMemberId());
+            throw new CustomException(ErrorCode.SIGNIN_FAIL);
+        }
+        
+        log.info("비밀번호 재설정 완료: {} - 비밀번호 검증 성공", resetPasswordDto.getMemberId());
     }
     
     /**
@@ -302,7 +313,17 @@ public class AuthServiceImpl implements AuthService {
         member.setPassword(encodedNewPassword);
         memberRepository.save(member);
         
-        log.info("비밀번호 변경 완료: {}", changePasswordDto.getMemberId());
+        // 저장 후 검증: 저장된 비밀번호가 올바르게 인코딩되었는지 확인
+        Member savedMember = memberRepository.findByMemberId(changePasswordDto.getMemberId())
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+        boolean passwordMatches = passwordEncoder.matches(changePasswordDto.getNewPassword(), savedMember.getPassword());
+        
+        if (!passwordMatches) {
+            log.error("비밀번호 변경 후 검증 실패: {} - 새 비밀번호와 저장된 비밀번호가 일치하지 않습니다.", changePasswordDto.getMemberId());
+            throw new CustomException(ErrorCode.SIGNIN_FAIL);
+        }
+        
+        log.info("비밀번호 변경 완료: {} - 비밀번호 검증 성공", changePasswordDto.getMemberId());
     }
 
 }

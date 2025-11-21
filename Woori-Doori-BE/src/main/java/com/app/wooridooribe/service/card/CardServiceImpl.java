@@ -287,24 +287,14 @@ public class CardServiceImpl implements CardService {
 
             memberCardRepository.save(memberCard);
 
-            // 저장 후 재조회하여 카드 이미지 포함하여 최신 정보 가져오기
             memberCard = memberCardRepository.findByMemberIdAndCardNum(safeMemberId, cardNum)
-                    .orElseThrow(() -> new CustomException(ErrorCode.CARD_ISNULL));
+                    .orElse(memberCard);
 
-            log.info("최종 조회 후 - memberCard member: {}, cardImage: {}",
-                    memberCard.getMember() != null ? memberCard.getMember().getId() : "null",
-                    memberCard.getCard() != null && memberCard.getCard().getCardImage() != null 
-                            ? memberCard.getCard().getCardImage().getFilePath() : "null");
+            log.info("최종 조회 후 - memberCard member: {}",
+                    memberCard.getMember() != null ? memberCard.getMember().getId() : "null");
         } else {
             // 기존 카드가 없으면 에러 (카드번호로 Card를 식별할 수 없으므로)
             throw new CustomException(ErrorCode.CARD_ISNULL);
-        }
-
-        // 카드 이미지가 제대로 로드되었는지 확인
-        if (memberCard.getCard() == null || memberCard.getCard().getCardImage() == null) {
-            log.warn("카드 이미지가 로드되지 않았습니다. memberCardId: {}, cardId: {}", 
-                    memberCard.getId(), 
-                    memberCard.getCard() != null ? memberCard.getCard().getId() : "null");
         }
 
         return UserCardResponseDto.from(memberCard);

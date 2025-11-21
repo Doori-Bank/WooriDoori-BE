@@ -1,7 +1,9 @@
 package com.app.wooridooribe.controller;
 
 import com.app.wooridooribe.controller.dto.CardHistoryResponseDto;
+import com.app.wooridooribe.exception.CustomException;
 import com.app.wooridooribe.jwt.MemberDetail;
+import com.app.wooridooribe.service.payment.PaymentSyncService;
 import com.app.wooridooribe.service.spending.SpendingService;
 import com.app.wooridooribe.controller.dto.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -9,6 +11,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,10 +23,12 @@ import java.util.Map;
 @Tag(name = "소비내역", description = "소비 내역 조회, 더치페이, 인원 수정, 금액 수정")
 @RestController
 @RequiredArgsConstructor
+@Slf4j
 @RequestMapping("/history/calendar")
 public class SpendingController {
 
     private final SpendingService spendingService;
+    private final PaymentSyncService paymentSyncService;
 
     @Operation(summary = "월별 소비 내역 조회", description = "사용자의 특정 월에 해당하는 소비 내역 및 합계 정보를 조회합니다.")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공")
@@ -182,4 +187,24 @@ public class SpendingController {
         return ResponseEntity.ok(ApiResponse.res(HttpStatus.OK.value(), "성공적으로 수정이 완료되었습니다", result));
     }
 
+    @Operation(summary = "결제 내역 동기화 (두리뱅킹)", description = "두리뱅킹 DB에서 결제 내역을 가져와 우리두리 DB에 저장합니다.")
+    @PostMapping("/sync")
+    public ResponseEntity<ApiResponse<?>> syncPaymentFromDooriBank(@RequestBody Map<String, Object> request) {
+        try {
+            String accountNumber = (String) request.get("accountNumber");
+            Long historyId = Long.valueOf(request.get("historyId").toString());
+            Long newHistoryId = paymentSyncService.syncPayment(accountNumber, historyId);
+            return ResponseEntity.ok(ApiResponse.res(HttpStatus.OK.value(), "결제 동기화 성공", newHistoryId));
+        } catch (CustomException e) {
+            return ResponseEntity.status(e.getErrorCode().getStatusCode())
+                    .body(ApiResponse.error(
+                            e.getErrorCode().getStatusCode().value(),
+                            e.getErrorCode().getErrorMsg()
+                    ));
+        } catch (Exception e) {
+            log.error("결제 동기화 실패", e);
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error(HttpStatus.BAD_REQUEST.value(), "결제 동기화 실패: " + e.getMessage()));
+        }
+    }
 }

@@ -39,7 +39,7 @@ public interface CardHistoryQueryDsl {
     List<Tuple> getCategorySpendingByMemberAndDateRange(Long memberId, LocalDate startDate, LocalDate endDate);
 
     // 가장 많이 사용한 카드 TOP 3 조회
-    List<Tuple> getTopUsedCardsByMemberAndDateRange(Long memberId, LocalDate startDate, LocalDate endDate);
+    List<Tuple> getTopUsedCards();
 
     // 일별 지출 금액 조회 (소비 안정성 계산용)
     List<Integer> getDailySpendingByMemberAndDateRange(Long memberId, LocalDate startDate, LocalDate endDate);
