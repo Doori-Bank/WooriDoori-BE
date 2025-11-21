@@ -1,5 +1,7 @@
 package com.app.wooridooribe.service.card;
 
+import com.app.wooridooribe.controller.dto.AdminCardCreateRequestDto;
+import com.app.wooridooribe.controller.dto.AdminCardEditRequestDto;
 import com.app.wooridooribe.controller.dto.CardCreateRequestDto;
 import com.app.wooridooribe.controller.dto.CardDeleteRequestDto;
 import com.app.wooridooribe.controller.dto.CardEditRequestDto;
@@ -7,6 +9,7 @@ import com.app.wooridooribe.controller.dto.CardRecommendResponseDto;
 import com.app.wooridooribe.controller.dto.CardResponseDto;
 import com.app.wooridooribe.controller.dto.UserCardResponseDto;
 import com.app.wooridooribe.entity.Card;
+import com.app.wooridooribe.entity.File;
 import com.app.wooridooribe.entity.Member;
 import com.app.wooridooribe.entity.MemberCard;
 import com.app.wooridooribe.exception.CustomException;
@@ -14,8 +17,10 @@ import com.app.wooridooribe.exception.ErrorCode;
 import com.app.wooridooribe.entity.type.CategoryType;
 import com.app.wooridooribe.repository.card.CardRepository;
 import com.app.wooridooribe.repository.cardHistory.CardHistoryRepository;
+import com.app.wooridooribe.repository.file.FileRepository;
 import com.app.wooridooribe.repository.member.MemberRepository;
 import com.app.wooridooribe.repository.memberCard.MemberCardRepository;
+import com.app.wooridooribe.service.s3FileService.S3FileService;
 import com.querydsl.core.Tuple;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,6 +44,8 @@ public class CardServiceImpl implements CardService {
     private final CardRepository cardRepository;
     private final MemberRepository memberRepository;
     private final CardHistoryRepository cardHistoryRepository;
+    private final FileRepository fileRepository;
+    private final S3FileService s3FileService;
 
     @Override
     @Transactional(readOnly = true)
@@ -58,6 +65,166 @@ public class CardServiceImpl implements CardService {
         return cards.stream()
                 .map(CardResponseDto::toDTO)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public CardResponseDto createCardForAdmin(AdminCardCreateRequestDto request) {
+        log.info("관리자 - 카드 생성 요청 수신: cardName={}", request.getCardName());
+
+        Long cardImageFileId = Objects.requireNonNull(request.getCardImageFileId(), "cardImageFileId must not be null");
+        File cardImage = fileRepository.findById(cardImageFileId)
+                .orElseThrow(() -> new CustomException(ErrorCode.FILE_NOT_FOUND));
+
+        File cardBanner = null;
+        Long cardBannerFileId = request.getCardBannerFileId();
+        if (cardBannerFileId != null) {
+            cardBanner = fileRepository.findById(cardBannerFileId)
+                    .orElseThrow(() -> new CustomException(ErrorCode.FILE_NOT_FOUND));
+        }
+
+        Card newCard = Card.builder()
+                .cardName(request.getCardName())
+                .cardBenefit(request.getCardBenefit())
+                .cardSvc(request.getCardSvc())
+                .annualFee1(request.getAnnualFee1())
+                .annualFee2(request.getAnnualFee2())
+                .cardType(request.getCardType())
+                .cardImage(cardImage)
+                .cardBanner(cardBanner)
+                .build();
+
+        Card savedCard = cardRepository.save(newCard);
+        log.info("관리자 - 카드 생성 완료: cardId={}, cardName={}", savedCard.getId(), savedCard.getCardName());
+
+        return CardResponseDto.toDTO(savedCard);
+    }
+
+    @Override
+    @Transactional
+    public CardResponseDto editCardForAdmin(AdminCardEditRequestDto request) {
+        Long cardId = Objects.requireNonNull(request.getCardId(), "cardId must not be null");
+        log.info("관리자 - 카드 수정 요청 수신: cardId={}", cardId);
+
+        // 카드 조회
+        Card card = cardRepository.findById(cardId)
+                .orElseThrow(() -> {
+                    log.warn("관리자 - 카드 수정 실패: 카드를 찾을 수 없음 - cardId={}", cardId);
+                    return new CustomException(ErrorCode.CARD_ISNULL);
+                });
+
+        // 카드명 수정
+        if (request.getCardName() != null && !request.getCardName().isEmpty()) {
+            card.setCardName(request.getCardName());
+        }
+
+        // 연회비 수정
+        if (request.getAnnualFee1() != null) {
+            card.setAnnualFee1(request.getAnnualFee1());
+        }
+        if (request.getAnnualFee2() != null) {
+            card.setAnnualFee2(request.getAnnualFee2());
+        }
+
+        // 카드 혜택 수정
+        if (request.getCardBenefit() != null) {
+            card.setCardBenefit(request.getCardBenefit());
+        }
+
+        // 카드 타입 수정
+        if (request.getCardType() != null) {
+            card.setCardType(request.getCardType());
+        }
+
+        // 서비스 여부 수정
+        if (request.getCardSvc() != null) {
+            card.setCardSvc(request.getCardSvc());
+        }
+
+        // 카드 이미지 수정
+        if (request.getCardImageFileId() != null) {
+            Long cardImageFileId = Objects.requireNonNull(request.getCardImageFileId(),
+                    "cardImageFileId must not be null");
+            File cardImage = fileRepository.findById(cardImageFileId)
+                    .orElseThrow(() -> {
+                        log.warn("관리자 - 카드 수정 실패: 카드 이미지 파일을 찾을 수 없음 - fileId={}", cardImageFileId);
+                        return new CustomException(ErrorCode.FILE_NOT_FOUND);
+                    });
+            card.setCardImage(cardImage);
+        }
+
+        // 카드 배너 수정
+        if (request.getCardBannerFileId() != null) {
+            Long cardBannerFileId = Objects.requireNonNull(request.getCardBannerFileId(),
+                    "cardBannerFileId must not be null");
+            File cardBanner = fileRepository.findById(cardBannerFileId)
+                    .orElseThrow(() -> {
+                        log.warn("관리자 - 카드 수정 실패: 카드 배너 파일을 찾을 수 없음 - fileId={}", cardBannerFileId);
+                        return new CustomException(ErrorCode.FILE_NOT_FOUND);
+                    });
+            card.setCardBanner(cardBanner);
+        }
+
+        Card savedCard = Objects.requireNonNull(cardRepository.save(card), "savedCard must not be null");
+        log.info("관리자 - 카드 수정 완료: cardId={}, cardName={}", savedCard.getId(), savedCard.getCardName());
+
+        return CardResponseDto.toDTO(savedCard);
+    }
+
+    @Override
+    @Transactional
+    public void deleteCardForAdmin(Long cardId) {
+        Long safeCardId = Objects.requireNonNull(cardId, "cardId must not be null");
+        log.info("관리자 - 카드 삭제 요청 수신: cardId={}", safeCardId);
+
+        Card card = cardRepository.findById(safeCardId)
+                .orElseThrow(() -> {
+                    log.warn("관리자 - 카드 삭제 실패: 카드를 찾을 수 없음 - cardId={}", safeCardId);
+                    return new CustomException(ErrorCode.CARD_ISNULL);
+                });
+
+        // 카드 이미지 파일 삭제 (S3 및 DB)
+        File cardImage = card.getCardImage();
+        if (cardImage != null) {
+            try {
+                // S3에서 파일 삭제
+                boolean s3Deleted = s3FileService.deleteImage(cardImage.getUuid());
+                if (s3Deleted) {
+                    log.info("관리자 - 카드 이미지 S3 삭제 완료: fileId={}, uuid={}", cardImage.getId(), cardImage.getUuid());
+                } else {
+                    log.warn("관리자 - 카드 이미지 S3 삭제 실패: fileId={}, uuid={}", cardImage.getId(), cardImage.getUuid());
+                }
+                // DB에서 File 엔티티 삭제
+                fileRepository.delete(cardImage);
+                log.info("관리자 - 카드 이미지 File 엔티티 삭제 완료: fileId={}", cardImage.getId());
+            } catch (Exception e) {
+                log.error("관리자 - 카드 이미지 삭제 중 오류 발생: fileId={}, error={}", cardImage.getId(), e.getMessage(), e);
+            }
+        }
+
+        // 카드 배너 이미지 파일 삭제 (S3 및 DB)
+        File cardBanner = card.getCardBanner();
+        if (cardBanner != null) {
+            try {
+                // S3에서 파일 삭제
+                boolean s3Deleted = s3FileService.deleteImage(cardBanner.getUuid());
+                if (s3Deleted) {
+                    log.info("관리자 - 카드 배너 이미지 S3 삭제 완료: fileId={}, uuid={}", cardBanner.getId(), cardBanner.getUuid());
+                } else {
+                    log.warn("관리자 - 카드 배너 이미지 S3 삭제 실패: fileId={}, uuid={}", cardBanner.getId(), cardBanner.getUuid());
+                }
+                // DB에서 File 엔티티 삭제
+                fileRepository.delete(cardBanner);
+                log.info("관리자 - 카드 배너 이미지 File 엔티티 삭제 완료: fileId={}", cardBanner.getId());
+            } catch (Exception e) {
+                log.error("관리자 - 카드 배너 이미지 삭제 중 오류 발생: fileId={}, error={}", cardBanner.getId(), e.getMessage(), e);
+            }
+        }
+
+        // 카드 삭제 (하드 삭제)
+        cardRepository.delete(card);
+
+        log.info("관리자 - 카드 삭제 완료: cardId={}, cardName={}", safeCardId, card.getCardName());
     }
 
     @Override
@@ -183,24 +350,78 @@ public class CardServiceImpl implements CardService {
     public CardRecommendResponseDto recommendCards(Long memberId) {
         log.info("카드 추천 요청 - memberId: {}", memberId);
 
-        // 1. 현재 년/월 기준으로 사용자의 결제 내역에서 카테고리별 소비 금액 조회
+        // 1. 신규 가입자 확인: 전체 기간 결제 내역이 있는지 확인
+        // 과거 충분히 먼 날짜부터 현재까지의 결제 내역을 조회하여 신규 가입자 여부 판단
         LocalDate today = LocalDate.now();
+        LocalDate startDateForNewUserCheck = LocalDate.of(2000, 1, 1); // 전체 기간 체크용 과거 날짜
+        LocalDate endDateForNewUserCheck = today;
+
+        List<Tuple> allTimeCategorySpendingList = cardHistoryRepository
+                .getCategorySpendingByMemberAndDateRange(memberId, startDateForNewUserCheck, endDateForNewUserCheck);
+
+        // 신규 가입자(결제 내역이 전혀 없는 경우) 전체 카드 중 인기 top 4 추천
+        if (allTimeCategorySpendingList == null || allTimeCategorySpendingList.isEmpty()) {
+            log.info("카드 추천 - 신규 가입자입니다. 전체 인기 카드 top 4를 추천합니다. memberId: {}", memberId);
+
+            // 전체 카드 중 인기 top 4 조회
+            List<Tuple> popularCardsOverall = cardRepository.findPopularCardsOverall(4);
+
+            if (popularCardsOverall == null || popularCardsOverall.isEmpty()) {
+                log.warn("카드 추천 - 추천할 카드가 없습니다. memberId: {}", memberId);
+                return CardRecommendResponseDto.builder()
+                        .topCategory(null)
+                        .cards(List.of())
+                        .build();
+            }
+
+            // 카드 ID 추출
+            List<Long> cardIds = popularCardsOverall.stream()
+                    .map(tuple -> tuple.get(0, Long.class))
+                    .collect(Collectors.toList());
+
+            // 카드 정보 조회
+            List<Card> recommendedCards = cardRepository.findCardsByIdIn(cardIds);
+
+            // ID 순서대로 정렬
+            List<Card> sortedCards = cardIds.stream()
+                    .map(cardId -> recommendedCards.stream()
+                            .filter(card -> card.getId().equals(cardId))
+                            .findFirst()
+                            .orElse(null))
+                    .filter(card -> card != null)
+                    .collect(Collectors.toList());
+
+            // CardResponseDto로 변환
+            List<CardResponseDto> cardResponseDtos = sortedCards.stream()
+                    .map(CardResponseDto::toDTO)
+                    .collect(Collectors.toList());
+
+            log.info("신규 가입자 카드 추천 완료 - memberId: {}, 추천된 카드 수: {}", memberId, cardResponseDtos.size());
+
+            return CardRecommendResponseDto.builder()
+                    .topCategory(null)
+                    .cards(cardResponseDtos)
+                    .build();
+        }
+
+        // 2. 기존 사용자: 현재 년/월 기준으로 사용자의 결제 내역에서 카테고리별 소비 금액 조회
         LocalDate startDate = YearMonth.from(today).atDay(1); // 이번 달 1일
         LocalDate endDate = YearMonth.from(today).atEndOfMonth(); // 이번 달 마지막 날
 
-        // 2. 카테고리별 소비 금액 조회 (TOP 1 추출)
+        // 3. 카테고리별 소비 금액 조회 (TOP 1 추출)
         List<Tuple> categorySpendingList = cardHistoryRepository
                 .getCategorySpendingByMemberAndDateRange(memberId, startDate, endDate);
 
+        // 이번 달 결제 내역이 없는 경우 (전체 기간에는 결제 내역이 있지만 이번 달에는 없음)
         if (categorySpendingList == null || categorySpendingList.isEmpty()) {
-            log.warn("카드 추천 - 결제 내역이 없습니다. memberId: {}", memberId);
+            log.warn("카드 추천 - 이번 달 결제 내역이 없습니다. memberId: {}", memberId);
             return CardRecommendResponseDto.builder()
                     .topCategory(null)
                     .cards(List.of())
                     .build();
         }
 
-        // 3. TOP 1 카테고리 추출
+        // 4. TOP 1 카테고리 추출
         Tuple topCategoryTuple = categorySpendingList.get(0);
         CategoryType topCategory = topCategoryTuple.get(0, CategoryType.class);
 

@@ -12,8 +12,10 @@ import java.time.LocalDateTime;
 @Getter
 public class Period {
 
-    @Column(updatable = false)
+    @Column(name = "created_date", updatable = false)
     private LocalDateTime createdDate;
+    
+    @Column(name = "updated_date")
     private LocalDateTime updatedDate;
 
     @PrePersist

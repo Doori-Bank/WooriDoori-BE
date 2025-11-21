@@ -18,6 +18,9 @@ public class MainDto {
     @Schema(description = "경과 날짜 (일)", example = "20")
     private Integer duringDate;
     
+    @Schema(description = "예상 남은 일수 (현재 페이스로 목표 금액을 초과하는 예상 일수)", example = "5")
+    private Integer remainingDays;
+    
     @Schema(description = "목표 달성률 (%)", example = "80")
     private Integer goalPercent;
     

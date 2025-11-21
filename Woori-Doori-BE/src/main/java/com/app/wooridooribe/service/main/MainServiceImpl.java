@@ -62,22 +62,40 @@ public class MainServiceImpl implements MainService {
         Integer totalPaidMoney = cardHistoryRepository.getTotalSpentByMemberAndDateRange(
                 memberId, goalStartDate, today
         );
+        // 데이터가 없을 경우 0으로 설정
+        if (totalPaidMoney == null) {
+            totalPaidMoney = 0;
+        }
 
         // 4. 목표 달성률 계산
         Integer goalMoney = latestGoal.getPreviousGoalMoney();
-        if (goalMoney == null || goalMoney == 0) {
-            goalMoney = 0;
-        }
         
-        int goalPercent = 0;
-        if (goalMoney > 0) {
+        Integer goalPercent = null;
+        if (goalMoney != null && goalMoney > 0 && totalPaidMoney != null) {
             // 목표 금액은 만원 단위이므로 원 단위로 변환하여 비교
             int goalMoneyInWon = goalMoney * 10000;
             goalPercent = (int) Math.round((double) totalPaidMoney / goalMoneyInWon * 100);
             goalPercent = Math.min(100, Math.max(0, goalPercent)); // 0~100 범위 제한
         }
 
-        // 5. 카테고리별 지출 TOP 5 조회 (QueryDSL)
+        // 5. 예상 남은 일수 계산 (현재 페이스로 목표 금액을 초과하는 예상 일수)
+        Integer remainingDays = null;
+        if (duringDate > 0 && totalPaidMoney != null && totalPaidMoney > 0 && goalMoney != null && goalMoney > 0) {
+            int goalMoneyInWon = goalMoney * 10000;
+            int remainingMoney = goalMoneyInWon - totalPaidMoney; // 남은 금액
+            
+            if (remainingMoney > 0) {
+                double dailyAvg = (double) totalPaidMoney / duringDate; // 하루 평균 사용 금액
+                if (dailyAvg > 0) {
+                    remainingDays = (int) Math.ceil((double) remainingMoney / dailyAvg); // 남은 금액을 사용할 수 있는 예상 일수
+                }
+            } else {
+                // 이미 목표 금액을 초과한 경우
+                remainingDays = 0;
+            }
+        }
+
+        // 6. 카테고리별 지출 TOP 5 조회 (QueryDSL)
         List<Tuple> categorySpendingList = cardHistoryRepository.getCategorySpendingByMemberAndDateRange(
                 memberId, goalStartDate, today
         );
@@ -99,10 +117,8 @@ public class MainServiceImpl implements MainService {
                     .build());
         }
 
-        // 6. 가장 많이 사용한 카드 TOP 3 조회 및 카드 배너 정보 가져오기 (QueryDSL)
-        List<Tuple> topUsedCards = cardHistoryRepository.getTopUsedCardsByMemberAndDateRange(
-                memberId, goalStartDate, today
-        );
+        // 7. 가장 많이 사용한 카드 TOP 3 조회 및 카드 배너 정보 가져오기 (QueryDSL)
+        List<Tuple> topUsedCards = cardHistoryRepository.getTopUsedCards();
         
         List<CardRecommendDto> cardRecommend = new ArrayList<>();
         if (!topUsedCards.isEmpty()) {
@@ -136,10 +152,11 @@ public class MainServiceImpl implements MainService {
             }
         }
 
-        // 7. MainDto 생성 및 반환
+        // 8. MainDto 생성 및 반환
         MainDto mainDto = MainDto.builder()
                 .fullDate(fullDate)
                 .duringDate(duringDate)
+                .remainingDays(remainingDays)
                 .goalPercent(goalPercent)
                 .goalMoney(goalMoney)
                 .totalPaidMoney(totalPaidMoney)
@@ -147,8 +164,8 @@ public class MainServiceImpl implements MainService {
                 .cardRecommend(cardRecommend)
                 .build();
 
-        log.info("메인 페이지 데이터 조회 완료 - memberId: {}, totalPaidMoney: {}, goalPercent: {}%", 
-                 memberId, totalPaidMoney, goalPercent);
+        log.info("메인 페이지 데이터 조회 완료 - memberId: {}, totalPaidMoney: {}, goalPercent: {}%, remainingDays: {}일", 
+                 memberId, totalPaidMoney, goalPercent, remainingDays);
         
         return mainDto;
     }

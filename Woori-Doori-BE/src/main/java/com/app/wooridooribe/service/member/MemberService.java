@@ -21,4 +21,9 @@ public interface MemberService {
      * 회원의 필수 카테고리 설정 및 해당 카테고리 결제 내역 미포함 처리
      */
     void updateEssentialCategories(Long memberId, java.util.List<CategoryType> essentialCategories);
+
+    /**
+     * 회원 권한 변경 (관리자 전용)
+     */
+    MemberResponseDto updateMemberAuthority(String memberId, com.app.wooridooribe.entity.type.Authority authority);
 }

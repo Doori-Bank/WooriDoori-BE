@@ -35,6 +35,12 @@ public class CardResponseDto {
     @Schema(description = "연회비 2", example = "해외겸용 12,000")
     private String annualFee2;
 
+    @Schema(description = "카드 이미지 File ID", example = "123")
+    private Long cardImageFileId;
+
+    @Schema(description = "카드 배너 이미지 File ID", example = "456")
+    private Long cardBannerFileId;
+
     public static CardResponseDto toDTO(MemberCard memberCard) {
         Card card = memberCard.getCard();
 
@@ -43,8 +49,18 @@ public class CardResponseDto {
 
         // File 엔티티에서 카드 이미지 URL - file_path에 이미 전체 URL이 있으므로 그대로 사용
         String cardUrl = "";
-        if (card.getCardImage() != null && card.getCardImage().getFilePath() != null) {
-            cardUrl = card.getCardImage().getFilePath();
+        Long cardImageFileId = null;
+        if (card.getCardImage() != null) {
+            if (card.getCardImage().getFilePath() != null) {
+                cardUrl = card.getCardImage().getFilePath();
+            }
+            cardImageFileId = card.getCardImage().getId();
+        }
+
+        // 카드 배너 이미지 정보
+        Long cardBannerFileId = null;
+        if (card.getCardBanner() != null) {
+            cardBannerFileId = card.getCardBanner().getId();
         }
 
         return CardResponseDto.builder()
@@ -56,6 +72,8 @@ public class CardResponseDto {
                 .cardSvc(cardSvcStr)
                 .annualFee1(card.getAnnualFee1() != null ? card.getAnnualFee1() : "")
                 .annualFee2(card.getAnnualFee2() != null ? card.getAnnualFee2() : "")
+                .cardImageFileId(cardImageFileId)
+                .cardBannerFileId(cardBannerFileId)
                 .build();
     }
 
@@ -65,8 +83,18 @@ public class CardResponseDto {
 
         // File 엔티티에서 카드 이미지 URL - file_path에 이미 전체 URL이 있으므로 그대로 사용
         String cardUrl = "";
-        if (card.getCardImage() != null && card.getCardImage().getFilePath() != null) {
-            cardUrl = card.getCardImage().getFilePath();
+        Long cardImageFileId = null;
+        if (card.getCardImage() != null) {
+            if (card.getCardImage().getFilePath() != null) {
+                cardUrl = card.getCardImage().getFilePath();
+            }
+            cardImageFileId = card.getCardImage().getId();
+        }
+
+        // 카드 배너 이미지 정보
+        Long cardBannerFileId = null;
+        if (card.getCardBanner() != null) {
+            cardBannerFileId = card.getCardBanner().getId();
         }
 
         return CardResponseDto.builder()
@@ -78,6 +106,8 @@ public class CardResponseDto {
                 .cardSvc(cardSvcStr)
                 .annualFee1(card.getAnnualFee1() != null ? card.getAnnualFee1() : "")
                 .annualFee2(card.getAnnualFee2() != null ? card.getAnnualFee2() : "")
+                .cardImageFileId(cardImageFileId)
+                .cardBannerFileId(cardBannerFileId)
                 .build();
     }
 }

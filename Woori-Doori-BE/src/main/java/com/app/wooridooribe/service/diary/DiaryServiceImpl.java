@@ -38,7 +38,11 @@ public class DiaryServiceImpl implements DiaryService {
 
         Member memberRef = memberRepository.getReferenceById(memberId);
         List<Diary> diaries = diaryRepository.findByMemberAndMonth(memberRef, startDate, endDate);
-        if (diaries.isEmpty()) throw new CustomException(ErrorCode.DIARY_ISNULL);
+        
+        // 일기가 없는 경우 빈 리스트 반환 (정상 상태)
+        if (diaries.isEmpty()) {
+            return List.of();
+        }
 
         // 방어적 소유권 검증(쿼리로 필터되지만 레이어드 방어)
         boolean anyNotMine = diaries.stream()

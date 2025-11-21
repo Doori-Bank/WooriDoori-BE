@@ -2,10 +2,12 @@ package com.app.wooridooribe.repository.cardHistory;
 
 import com.app.wooridooribe.controller.dto.CardHistorySummaryResponseDto;
 import com.app.wooridooribe.entity.CardHistory;
+import com.app.wooridooribe.entity.QCard;
 import com.app.wooridooribe.entity.QCardHistory;
 import com.app.wooridooribe.entity.QMemberCard;
 import com.app.wooridooribe.entity.type.CategoryType;
 import com.app.wooridooribe.entity.type.StatusType;
+import com.app.wooridooribe.entity.type.YESNO;
 import com.querydsl.core.Tuple;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
@@ -143,10 +145,10 @@ public class CardHistoryQueryDslImpl implements CardHistoryQueryDsl {
                         history.historyIncludeTotal.eq("Y")
                 )
                 .fetchOne();
-        
-        log.info("getTotalSpentByMemberAndDateRange - memberId: {}, startDate: {}, endDate: {}, totalSpent: {}", 
+
+        log.info("getTotalSpentByMemberAndDateRange - memberId: {}, startDate: {}, endDate: {}, totalSpent: {}",
                 memberId, startDate, endDate, totalSpent);
-        
+
         return totalSpent;
     }
 
@@ -196,10 +198,10 @@ public class CardHistoryQueryDslImpl implements CardHistoryQueryDsl {
     }
 
     @Override
-    public List<Tuple> getTopUsedCardsByMemberAndDateRange(Long memberId, LocalDate startDate, LocalDate endDate) {
+    public List<Tuple> getTopUsedCards() {
         QCardHistory history = QCardHistory.cardHistory;
         QMemberCard memberCard = QMemberCard.memberCard;
-
+        QCard card = QCard.card;
         return queryFactory
                 .select(
                         memberCard.card.id,
@@ -207,10 +209,9 @@ public class CardHistoryQueryDslImpl implements CardHistoryQueryDsl {
                 )
                 .from(history)
                 .join(history.memberCard, memberCard)
+                .join(memberCard.card, card)
                 .where(
-                        memberCard.member.id.eq(memberId),
-                        history.historyDate.between(startDate, endDate),
-                        history.historyIncludeTotal.eq("Y")
+                        card.cardSvc.eq(YESNO.YES)
                 )
                 .groupBy(memberCard.card.id)
                 .orderBy(history.id.count().desc())
@@ -278,7 +279,7 @@ public class CardHistoryQueryDslImpl implements CardHistoryQueryDsl {
 
         // Tuple 리스트로 변환하여 반환 (기존 인터페이스와 호환)
         List<Tuple> results = new ArrayList<>();
-        
+
         // 필수 지출 Tuple 생성 (값이 0이어도 항상 반환)
         Tuple essentialTuple = queryFactory
                 .select(
@@ -288,11 +289,11 @@ public class CardHistoryQueryDslImpl implements CardHistoryQueryDsl {
                 .from(history)
                 .limit(1)
                 .fetchFirst();
-        
+
         if (essentialTuple != null) {
             results.add(essentialTuple);
         }
-        
+
         // 비필수 지출 Tuple 생성 (값이 0이어도 항상 반환)
         Tuple nonEssentialTuple = queryFactory
                 .select(
@@ -302,11 +303,11 @@ public class CardHistoryQueryDslImpl implements CardHistoryQueryDsl {
                 .from(history)
                 .limit(1)
                 .fetchFirst();
-        
+
         if (nonEssentialTuple != null) {
             results.add(nonEssentialTuple);
         }
-        
+
         return results;
     }
 
