@@ -174,6 +174,28 @@ public class CardHistoryQueryDslImpl implements CardHistoryQueryDsl {
     }
 
     @Override
+    public List<Tuple> getAllCategorySpendingByMemberAndDateRange(Long memberId, LocalDate startDate, LocalDate endDate) {
+        QCardHistory history = QCardHistory.cardHistory;
+        QMemberCard memberCard = QMemberCard.memberCard;
+
+        return queryFactory
+                .select(
+                        history.historyCategory,
+                        history.historyPrice.sum()
+                )
+                .from(history)
+                .join(history.memberCard, memberCard)
+                .where(
+                        memberCard.member.id.eq(memberId),
+                        history.historyDate.between(startDate, endDate),
+                        history.historyIncludeTotal.eq("Y")
+                )
+                .groupBy(history.historyCategory)
+                .orderBy(history.historyPrice.sum().desc())
+                .fetch();
+    }
+
+    @Override
     public List<Tuple> getTopUsedCardsByMemberAndDateRange(Long memberId, LocalDate startDate, LocalDate endDate) {
         QCardHistory history = QCardHistory.cardHistory;
         QMemberCard memberCard = QMemberCard.memberCard;

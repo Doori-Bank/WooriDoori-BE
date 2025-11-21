@@ -604,7 +604,7 @@ public class GoalServiceImpl implements GoalService {
 
         // 5. 카테고리별 소비 조회
         List<Tuple> categorySpendingList = cardHistoryRepository
-                .getCategorySpendingByMemberAndDateRange(memberId, startDate, endDate);
+                .getAllCategorySpendingByMemberAndDateRange(memberId, startDate, endDate);
 
         // 금액 순으로 정렬 후 전체 추출
         Map<CategoryType, Integer> CategorySpending = categorySpendingList.stream()

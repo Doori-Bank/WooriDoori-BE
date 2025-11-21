@@ -79,7 +79,7 @@ public class GoalController {
     
     @GetMapping("/report")
     @Operation(summary = "요약리포트 데이터 조회",
-               description = "이번달 목표 금액, 소비 점수, 소비금액, 카테고리별 소비 TOP 4를 반환합니다")
+               description = "이번달 목표 금액, 소비 점수, 소비금액, 카테고리별 소비를 반환합니다")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "대시보드 데이터 조회 성공")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "이번 달 목표가 존재하지 않습니다")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "권한 없음")
