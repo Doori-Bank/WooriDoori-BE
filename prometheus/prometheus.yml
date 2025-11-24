@@ -1,0 +1,40 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'wooridoori'
+    environment: 'production'
+
+# k6 메트릭 수집 설정
+scrape_configs:
+  # k6 메트릭은 k6 실행 시 --out statsd 또는 --out json으로 출력하고
+  # 별도의 exporter를 통해 수집하거나, k6의 실시간 메트릭 API를 사용합니다.
+  # k6 v0.47.0+에서는 --out experimental-prometheus-rw를 사용할 수 있습니다.
+  # 또는 k6의 결과를 파일로 저장하고 별도 프로세스로 수집합니다.
+
+  # 우리두리 인스턴스 1 메트릭 (Spring Actuator)
+  - job_name: 'wooridoori-instance1'
+    static_configs:
+      - targets: ['172.16.1.120:8080']
+        labels:
+          instance: 'wooridoori-instance1'
+          server: '172.16.1.120'
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 10s
+
+  # 우리두리 인스턴스 2 메트릭 (Spring Actuator)
+  - job_name: 'wooridoori-instance2'
+    static_configs:
+      - targets: ['172.16.1.120:8081']  # 포트가 다르면 수정 필요
+        labels:
+          instance: 'wooridoori-instance2'
+          server: '172.16.1.120'
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 10s
+
+  # Nginx 메트릭 (nginx-prometheus-exporter 사용 시)
+  - job_name: 'nginx'
+    static_configs:
+      - targets: ['nginx-exporter:9113']
+    scrape_interval: 10s
+

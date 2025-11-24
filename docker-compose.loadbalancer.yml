@@ -31,6 +31,8 @@ services:
     # 외부 포트는 노출하지 않음 (Nginx를 통해서만 접근)
     expose:
       - "8080"
+    volumes:
+      - ./.env:/app/.env:ro  # .env 파일 마운트
     environment:
       - SPRING_PROFILES_ACTIVE=prod
       - DB1_URL=${DB1_URL}
@@ -39,9 +41,9 @@ services:
       - DB2_URL=${DB2_URL}
       - DB2_USERNAME=${DB2_USERNAME}
       - DB2_PASSWORD=${DB2_PASSWORD}
-      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_URL=${REDIS_URL}
       - REDIS_PORT=${REDIS_PORT:-6379}
-      - JWT_SECRET=${JWT_SECRET}
+      - JWT=${JWT}
       - GROQ_API_KEY=${GROQ_API_KEY}
       - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://ollama:11434}
       - SERVER_PORT=8080
@@ -66,6 +68,8 @@ services:
     # 외부 포트는 노출하지 않음 (Nginx를 통해서만 접근)
     expose:
       - "8080"
+    volumes:
+      - ./.env:/app/.env:ro  # .env 파일 마운트
     environment:
       - SPRING_PROFILES_ACTIVE=prod
       - DB1_URL=${DB1_URL}
@@ -74,9 +78,9 @@ services:
       - DB2_URL=${DB2_URL}
       - DB2_USERNAME=${DB2_USERNAME}
       - DB2_PASSWORD=${DB2_PASSWORD}
-      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_URL=${REDIS_URL}
       - REDIS_PORT=${REDIS_PORT:-6379}
-      - JWT_SECRET=${JWT_SECRET}
+      - JWT=${JWT}
       - GROQ_API_KEY=${GROQ_API_KEY}
       - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://ollama:11434}
       - SERVER_PORT=8080
