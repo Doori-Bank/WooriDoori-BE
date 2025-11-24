@@ -25,7 +25,7 @@ services:
   # 우리두리 인스턴스 1
   wooridoori-instance1:
     build:
-      context: ./WooriDoori-App-BE/Woori-Doori-BE
+      context: ./Woori-Doori-BE
       dockerfile: Dockerfile
     container_name: wooridoori-instance1
     # 외부 포트는 노출하지 않음 (Nginx를 통해서만 접근)
@@ -60,7 +60,7 @@ services:
   # 우리두리 인스턴스 2
   wooridoori-instance2:
     build:
-      context: ./WooriDoori-App-BE/Woori-Doori-BE
+      context: ./Woori-Doori-BE
       dockerfile: Dockerfile
     container_name: wooridoori-instance2
     # 외부 포트는 노출하지 않음 (Nginx를 통해서만 접근)
@@ -122,7 +122,7 @@ services:
     image: grafana/k6:latest
     container_name: k6-runner
     volumes:
-      - ./WooriDoori-App-BE/load_test:/scripts:ro
+      - ./load_test:/scripts:ro
     networks:
       - wooridoori-network
     profiles:
