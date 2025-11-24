@@ -77,25 +77,25 @@ public class GoalController {
     
     /** 대시보드 화면용 API **/
     
-    @GetMapping("/dashboard")
-    @Operation(summary = "대시보드 데이터 조회", 
-               description = "이번달 목표 금액, 달성률, 소비 점수, 두리의 한마디, 카테고리별 소비 TOP 4를 반환합니다")
+    @GetMapping("/report")
+    @Operation(summary = "요약리포트 데이터 조회",
+               description = "이번달 목표 금액, 소비 점수, 소비금액, 카테고리별 소비를 반환합니다")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "대시보드 데이터 조회 성공")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "이번 달 목표가 존재하지 않습니다")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "권한 없음")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패 (JWT 필요)")
-    public ResponseEntity<ApiResponse<DashboardResponseDto>> getDashboard(Authentication authentication) {
+    public ResponseEntity<ApiResponse<ReportResponseDto>> getReport(Authentication authentication) {
         
         // 현재 로그인한 사용자의 memberId 추출
         MemberDetail principal = (MemberDetail) authentication.getPrincipal();
         Long memberId = principal.getMember().getId();
         
-        log.info("대시보드 데이터 조회 요청 - memberId: {}", memberId);
+        log.info("요약리포트 데이터 조회 요청 - memberId: {}", memberId);
         
-        // 대시보드 데이터 조회
-        DashboardResponseDto result = goalService.getDashboardData(memberId);
+        // 요약리포트 데이터 조회
+        ReportResponseDto result = goalService.getReportData(memberId);
         
-        return ResponseEntity.ok(ApiResponse.res(200, "대시보드 데이터를 불러왔습니다", result));
+        return ResponseEntity.ok(ApiResponse.res(200, "요약리포트 데이터를 불러왔습니다", result));
     }
     
     /** 과거 목표 조회 API **/

@@ -17,4 +17,6 @@ public interface GoalQueryDsl {
     Optional<Goal> findGoalByMemberIdAndStartDate(Long memberId, LocalDate startDate);
 
     List<Goal> findAllGoalsByMember(Long memberId);
+
+    List<Goal> findPastGoalsByMember(Long memberId);
 }

@@ -28,11 +28,16 @@ public class GetGoalDto {
     @Schema(description = "목표 제한금액", example = "300")
     private Integer previousGoalMoney; // 목표소비금액
 
+    @Schema(description = "소비점수 (100점 만점)", example = "85")
+    private Integer goalScore;
+
+
     public static GetGoalDto fromEntity(Goal goal) {
         return GetGoalDto.builder()
                 .goalStartDate(goal.getGoalStartDate())
                 .goalIncome(goal.getGoalIncome())
                 .previousGoalMoney(goal.getPreviousGoalMoney())
+                .goalScore(goal.getGoalScore())
                 .build();
     }
 
