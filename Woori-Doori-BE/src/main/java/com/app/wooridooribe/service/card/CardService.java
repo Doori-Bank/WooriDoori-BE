@@ -8,6 +8,7 @@ import com.app.wooridooribe.controller.dto.CardEditRequestDto;
 import com.app.wooridooribe.controller.dto.CardRecommendResponseDto;
 import com.app.wooridooribe.controller.dto.CardResponseDto;
 import com.app.wooridooribe.controller.dto.UserCardResponseDto;
+import com.app.wooridooribe.entity.File;
 
 import java.util.List;
 
@@ -18,7 +19,7 @@ public interface CardService {
 
     CardResponseDto createCardForAdmin(AdminCardCreateRequestDto request);
 
-    CardResponseDto editCardForAdmin(AdminCardEditRequestDto request);
+    CardResponseDto editCardForAdmin(AdminCardEditRequestDto request, File cardImageFile, File cardBannerFile);
 
     void deleteCardForAdmin(Long cardId);
 

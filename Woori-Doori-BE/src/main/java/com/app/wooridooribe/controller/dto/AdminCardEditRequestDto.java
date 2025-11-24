@@ -17,7 +17,7 @@ import lombok.NoArgsConstructor;
 public class AdminCardEditRequestDto {
 
     @NotNull
-    @Schema(description = "카드 ID", example = "1", required = true)
+    @Schema(description = "카드 ID", example = "1")
     private Long cardId;
 
     @Schema(description = "카드 이름", example = "WOORI SIGNATURE")
@@ -37,11 +37,5 @@ public class AdminCardEditRequestDto {
 
     @Schema(description = "서비스 여부", example = "YES")
     private YESNO cardSvc;
-
-    @Schema(description = "카드 이미지 파일 ID", example = "1234")
-    private Long cardImageFileId;
-
-    @Schema(description = "카드 배너 이미지 파일 ID", example = "5678")
-    private Long cardBannerFileId;
 }
 

@@ -17,8 +17,11 @@ public class CardResponseDto {
     @Schema(description = "카드명", example = "우리카드 7CORE")
     private String cardName;
 
-    @Schema(description = "카드 이미지 URL", example = "https://cloud5-img-storage.s3.ap-northeast-2.amazonaws.com/franchise_logo/haruensoku.png")
+    @Schema(description = "카드 URL (DB의 card_url 컬럼)", example = "https://m.wooricard.com/dcmw/yh1/crd/crd01/M1CRE")
     private String cardUrl;
+
+    @Schema(description = "카드 이미지 URL (tbl_file의 file_path)", example = "https://cloud5-img-storage.s3.ap-northeast-2.amazonaws.com/franchise_logo/haruensoku.png")
+    private String cardImageUrl;
 
     @Schema(description = "카드 혜택", example = "온라인쇼핑, 대형마트, 배달앱 10% 청구할인")
     private String cardBenef;
@@ -47,14 +50,17 @@ public class CardResponseDto {
         // YESNO enum을 문자열로 변환 (enum.name() 사용)
         String cardSvcStr = card.getCardSvc() != null ? card.getCardSvc().name() : null;
 
-        // File 엔티티에서 카드 이미지 URL - file_path에 이미 전체 URL이 있으므로 그대로 사용
-        String cardUrl = "";
+        // DB의 card_url 컬럼 값
+        String cardUrl = card.getCardUrl();
+
+        // cardImageFileId를 통해 tbl_file의 file_path를 이미지 URL로 사용
+        String cardImageUrl = "";
         Long cardImageFileId = null;
         if (card.getCardImage() != null) {
-            if (card.getCardImage().getFilePath() != null) {
-                cardUrl = card.getCardImage().getFilePath();
-            }
             cardImageFileId = card.getCardImage().getId();
+            if (card.getCardImage().getFilePath() != null) {
+                cardImageUrl = card.getCardImage().getFilePath();
+            }
         }
 
         // 카드 배너 이미지 정보
@@ -67,6 +73,7 @@ public class CardResponseDto {
                 .id(card.getId())
                 .cardName(card.getCardName())
                 .cardUrl(cardUrl)
+                .cardImageUrl(cardImageUrl)
                 .cardBenef(card.getCardBenefit() != null ? card.getCardBenefit() : "")
                 .cardType(card.getCardType())
                 .cardSvc(cardSvcStr)
@@ -81,14 +88,17 @@ public class CardResponseDto {
         // YESNO enum을 문자열로 변환 (enum.name() 사용)
         String cardSvcStr = card.getCardSvc() != null ? card.getCardSvc().name() : null;
 
-        // File 엔티티에서 카드 이미지 URL - file_path에 이미 전체 URL이 있으므로 그대로 사용
-        String cardUrl = "";
+        // DB의 card_url 컬럼 값
+        String cardUrl = card.getCardUrl();
+
+        // cardImageFileId를 통해 tbl_file의 file_path를 이미지 URL로 사용
+        String cardImageUrl = "";
         Long cardImageFileId = null;
         if (card.getCardImage() != null) {
-            if (card.getCardImage().getFilePath() != null) {
-                cardUrl = card.getCardImage().getFilePath();
-            }
             cardImageFileId = card.getCardImage().getId();
+            if (card.getCardImage().getFilePath() != null) {
+                cardImageUrl = card.getCardImage().getFilePath();
+            }
         }
 
         // 카드 배너 이미지 정보
@@ -101,6 +111,7 @@ public class CardResponseDto {
                 .id(card.getId())
                 .cardName(card.getCardName())
                 .cardUrl(cardUrl)
+                .cardImageUrl(cardImageUrl)
                 .cardBenef(card.getCardBenefit() != null ? card.getCardBenefit() : "")
                 .cardType(card.getCardType())
                 .cardSvc(cardSvcStr)
