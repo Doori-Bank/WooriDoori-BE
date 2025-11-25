@@ -230,6 +230,18 @@ public class CardServiceImpl implements CardService {
     @Override
     @Transactional
     public UserCardResponseDto createUserCard(Long memberId, CardCreateRequestDto request) {
+        // 카드 CVC 검증 활성화
+        return createUserCardInternal(memberId, request, false);
+    }
+
+    @Override
+    @Transactional
+    public UserCardResponseDto createUserCardWithoutCvc(Long memberId, CardCreateRequestDto request) {
+        // 카드 CVC 검증 비활성화
+        return createUserCardInternal(memberId, request, true);
+    }
+
+    private UserCardResponseDto createUserCardInternal(Long memberId, CardCreateRequestDto request, boolean skipCvcValidation) {
         Long safeMemberId = Objects.requireNonNull(memberId, "memberId must not be null");
         String cardNum = Objects.requireNonNull(request.getCardNum(), "cardNum must not be null");
 
@@ -266,11 +278,15 @@ public class CardServiceImpl implements CardService {
                         memberCard.getCardUserRegistBack(), request.getCardUserRegistBack());
                 throw new CustomException(ErrorCode.INVALID_BIRTHDATE);
             }
-            // CVC 검증
-            if (!memberCard.getCardCvc().equals(request.getCardCvc())) {
-                log.warn("CVC 불일치 - DB: {}, 요청: {}",
-                        memberCard.getCardCvc(), request.getCardCvc());
-                throw new CustomException(ErrorCode.INVALID_CVC);
+            // CVC 검증 (테스트 모드에서는 스킵 가능)
+            if (!skipCvcValidation) {
+                if (!memberCard.getCardCvc().equals(request.getCardCvc())) {
+                    log.warn("CVC 불일치 - DB: {}, 요청: {}",
+                            memberCard.getCardCvc(), request.getCardCvc());
+                    throw new CustomException(ErrorCode.INVALID_CVC);
+                }
+            } else {
+                log.warn("테스트 모드 - CVC 검증을 건너뜁니다.");
             }
 
             // member FK 설정 및 card_alias 업데이트 후 DB에 저장

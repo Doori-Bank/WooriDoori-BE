@@ -26,8 +26,8 @@ export const options = {
 };
 
 // 환경 변수에서 URL 가져오기 (없으면 기본값 사용)
-const DOORIBANK_URL = __ENV.DOORIBANK_URL || 'http://localhost:8081';
-const WOORIDOORI_URL = __ENV.WOORIDOORI_URL || 'http://localhost:8080';
+const DOORIBANK_URL = "http://113.198.66.75:18177";
+const WOORIDOORI_URL = "http://172.16.1.120:8080" ;
 
 // 테스트 시작 전에 실제 회원 데이터를 가져옵니다
 export function setup() {
@@ -143,6 +143,39 @@ export function setup() {
     console.error(`파싱 시도한 본문 (처음 1000자): ${bodyText.substring(0, 1000)}`);
     console.error(`응답 본문 원본 (처음 200자): ${response.body.substring(0, 200)}`);
     return { members: [] };
+  }
+}
+
+function getCardInfoForMember(memberName, birthDate, birthBack) {
+  if (!memberName || !birthDate || !birthBack) {
+    console.log(`[카드정보] 필수 파라미터 누락 - name: ${memberName}, birthDate: ${birthDate}, birthBack: ${birthBack}`);
+    return null;
+  }
+
+  const query = `memberName=${encodeURIComponent(memberName)}&registNum=${birthDate}&registBack=${birthBack}`;
+  const url = `${WOORIDOORI_URL}/test/card-info?${query}`;
+
+  try {
+    const response = http.get(url, {
+      timeout: '30s',
+      tags: { name: 'FetchCardInfo' },
+    });
+
+    if (response.status !== 200) {
+      console.log(`[카드정보] 조회 실패 - status: ${response.status}, body: ${response.body ? response.body.substring(0, 200) : 'null'}`);
+      return null;
+    }
+
+    const parsed = JSON.parse(response.body);
+    if (!parsed || !parsed.resultData) {
+      console.log(`[카드정보] resultData가 없습니다 - body: ${response.body ? response.body.substring(0, 200) : 'null'}`);
+      return null;
+    }
+
+    return parsed.resultData;
+  } catch (e) {
+    console.log(`[카드정보] 요청 중 오류 - ${e.message}`);
+    return null;
   }
 }
 
@@ -283,41 +316,20 @@ export default function (data) {
   sleep(1);
 
   // ========== 3단계: 카드 등록 ==========
-  // 계좌 정보가 없으면 카드 등록 스킵
-  if (!member.accountNumber || !member.accountPassword) {
-    console.log(`카드 등록 스킵: ${email} - 계좌 정보 없음 (accountNumber: ${member.accountNumber || 'null'}, accountPassword: ${member.accountPassword || 'null'})`);
-    console.log(`회원 데이터 전체: ${JSON.stringify(member)}`);
+  const cardInfo = getCardInfoForMember(member.name, birthDate, birthBack);
+
+  if (!cardInfo) {
+    console.log(`카드 등록 스킵: ${email} - 카드 원본 데이터 없음 (name: ${member.name}, birthDate: ${birthDate}, birthBack: ${birthBack})`);
     sleep(1);
   } else {
-    // 계좌번호를 카드번호로 사용 (16자리로 변환: 계좌번호가 20자리면 앞 16자리 사용)
-    let cardNum = member.accountNumber.replace(/[^0-9]/g, ''); // 숫자만 추출
-    if (cardNum.length > 16) {
-      cardNum = cardNum.substring(0, 16); // 앞 16자리만 사용
-    } else if (cardNum.length < 16) {
-      // 16자리보다 짧으면 0으로 패딩
-      cardNum = cardNum.padEnd(16, '0');
-    }
-    
-    // 계좌 비밀번호를 카드 비밀번호로 사용 (4자리 -> 2자리: 앞 2자리 사용)
-    const cardPw = member.accountPassword.substring(0, 2);
-    
-    // 유효기간은 미래 날짜로 생성 (MMYY 형식)
-    const today = new Date();
-    const futureYear = today.getFullYear() + 2; // 2년 후
-    const expiryMmYy = `${String(today.getMonth() + 1).padStart(2, '0')}${String(futureYear).substring(2, 4)}`;
-    
-    // CVC는 랜덤 생성 (3자리)
-    const cardCvc = String(Math.floor(Math.random() * 1000)).padStart(3, '0');
-    const cardAlias = `테스트카드_${__VU}`;
-
     const cardPayload = JSON.stringify({
-      cardNum: cardNum,
-      cardPw: cardPw,
-      expiryMmYy: expiryMmYy,
-      cardUserRegistNum: birthDate,
-      cardUserRegistBack: birthBack,
-      cardCvc: cardCvc,
-      cardAlias: cardAlias,
+      cardNum: cardInfo.cardNum,
+      cardPw: cardInfo.cardPw,
+      expiryMmYy: cardInfo.expiryMmYy,
+      cardUserRegistNum: cardInfo.cardUserRegistNum,
+      cardUserRegistBack: cardInfo.cardUserRegistBack,
+      cardCvc: cardInfo.cardCvc,
+      cardAlias: cardInfo.cardUserName ? `${cardInfo.cardUserName}_테스트카드` : `테스트카드_${__VU}`,
     });
 
     const cardRes = http.patch(
@@ -359,7 +371,7 @@ export default function (data) {
   // essentialCategories는 빈 배열로 보내는 것이 안전함
   // 프론트엔드와 동일한 형식으로 보내기
   const goalPayloadObj = {
-    goalJob: 'EMPLOYEE', // 직장인 (JobType enum)
+    goalJob: 'SALARY', // 직장인 (JobType enum)
     goalStartDate: goalStartDate, // "YYYY-MM-DD" 형식 (LocalDate로 변환됨)
     goalIncome: '3000', // 월 수입 (String, 단위: 만원)
     previousGoalMoney: 200, // 목표 소비금액 (Integer, 단위: 만원)
@@ -401,7 +413,7 @@ export default function (data) {
   // 리포트는 스케줄러가 자동으로 발행하지만, 리포트 조회 API를 호출하여 리포트가 준비되었는지 확인
   // 대시보드 API로 리포트 정보 확인
   const dashboardRes = http.get(
-    `${WOORIDOORI_URL}/goal/dashboard`,
+    `${WOORIDOORI_URL}/goal/report`,
     {
       headers: {
         Authorization: `Bearer ${accessToken}`,

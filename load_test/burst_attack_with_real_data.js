@@ -10,8 +10,8 @@ export const options = {
   },
 };
 
-const DOORIBANK_URL = __ENV.DOORIBANK_URL || 'http://localhost:8081';
-const WOORIDOORI_URL = __ENV.WOORIDOORI_URL || 'http://localhost:8080';
+const DOORIBANK_URL = __ENV.DOORIBANK_URL;
+const WOORIDOORI_URL = __ENV.WOORIDOORI_URL;
 
 // 테스트 시작 전에 실제 회원 데이터를 가져옵니다
 export function setup() {

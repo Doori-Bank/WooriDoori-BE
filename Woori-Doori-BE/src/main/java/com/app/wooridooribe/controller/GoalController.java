@@ -77,7 +77,7 @@ public class GoalController {
     
     /** 대시보드 화면용 API **/
     
-    @GetMapping("/dashboard")
+    @GetMapping("/report")
     @Operation(summary = "대시보드 데이터 조회", 
                description = "이번달 목표 금액, 달성률, 소비 점수, 두리의 한마디, 카테고리별 소비 TOP 4를 반환합니다")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "대시보드 데이터 조회 성공")
