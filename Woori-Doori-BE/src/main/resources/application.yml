@@ -38,10 +38,10 @@ spring:
       username: ${DB1_USERNAME}
       password: ${DB1_PASSWORD}
       hikari:
-        connection-timeout: 30000
-        socket-timeout: 60000
-        maximum-pool-size: 10
-        minimum-idle: 5
+        connection-timeout: 60000  # 연결 대기 시간 증가 (30초 -> 60초)
+        socket-timeout: 120000     # 소켓 타임아웃 증가 (60초 -> 120초)
+        maximum-pool-size: 50      # 연결 풀 크기 증가 (10 -> 50)
+        minimum-idle: 10           # 최소 유휴 연결 증가 (5 -> 10)
         max-lifetime: 1800000
         idle-timeout: 600000
         leak-detection-threshold: 60000
@@ -51,10 +51,10 @@ spring:
       username: ${DB2_USERNAME}
       password: ${DB2_PASSWORD}
       hikari:
-        connection-timeout: 30000
-        socket-timeout: 60000
-        maximum-pool-size: 10
-        minimum-idle: 5
+        connection-timeout: 60000  # 연결 대기 시간 증가 (30초 -> 60초)
+        socket-timeout: 120000     # 소켓 타임아웃 증가 (60초 -> 120초)
+        maximum-pool-size: 50      # 연결 풀 크기 증가 (10 -> 50)
+        minimum-idle: 10           # 최소 유휴 연결 증가 (5 -> 10)
         max-lifetime: 1800000
         idle-timeout: 600000
         leak-detection-threshold: 60000

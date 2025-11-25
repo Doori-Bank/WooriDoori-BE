@@ -16,12 +16,22 @@ const WOORIDOORI_URL = __ENV.WOORIDOORI_URL || 'http://localhost:8080';
 // 테스트 시작 전에 실제 회원 데이터를 가져옵니다
 export function setup() {
   console.log('=== DooriBank에서 실제 회원 데이터 가져오기 ===');
+  console.log(`DooriBank URL: ${DOORIBANK_URL}`);
   
-  const response = http.get(`${DOORIBANK_URL}/api/test/members`);
+  const url = `${DOORIBANK_URL}/api/test/members`;
+  console.log(`회원 데이터 조회 URL: ${url}`);
+  
+  const response = http.get(url, {
+    timeout: '30s',
+    tags: { name: 'Setup_GetMembers' },
+  });
+  
+  console.log(`응답 상태: ${response.status}`);
   
   if (response.status !== 200) {
     console.error(`회원 데이터 조회 실패: ${response.status}`);
     console.error(`응답 본문: ${response.body}`);
+    console.error(`응답 헤더: ${JSON.stringify(response.headers)}`);
     return { members: [] };
   }
   

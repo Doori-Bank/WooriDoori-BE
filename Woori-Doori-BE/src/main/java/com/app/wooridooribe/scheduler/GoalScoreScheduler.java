@@ -25,7 +25,7 @@ public class GoalScoreScheduler {
      * cron 표현식: 초 분 시 일 월 요일
      * 0 0 2 * * ? = 매일 02:00:00
      */
-    @Scheduled(cron = "0 0 2 * * ?")
+   @Scheduled(cron = "0 0 2 * * ?")
     public void calculateAllUsersScores() {
         LocalDate today = LocalDate.now();
         LocalDate lastDayOfMonth = today.withDayOfMonth(today.lengthOfMonth());

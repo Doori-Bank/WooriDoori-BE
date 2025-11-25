@@ -38,7 +38,7 @@ sudo apt-get install k6
 k6 run load_test/full_workflow_stress_test.js
 
 # 커스텀 URL 설정
-DOORIBANK_URL=http://localhost:8081 WOORIDOORI_URL=http://localhost:8080 \
+DOORIBANK_URL=http://113.198.66.75:18177 WOORIDOORI_URL=http://172.16.1.120:8080 \
 k6 run load_test/full_workflow_stress_test.js
 
 # 결과를 JSON으로 저장
