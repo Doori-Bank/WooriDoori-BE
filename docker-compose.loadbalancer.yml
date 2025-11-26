@@ -28,6 +28,9 @@ services:
     build:
       context: ./Woori-Doori-BE
       dockerfile: Dockerfile
+      # 빌드 캐시 최적화
+      cache_from:
+        - wooridoori-be:latest
     container_name: wooridoori-instance1
     # 외부 포트는 노출하지 않음 (Nginx를 통해서만 접근)
     expose:
@@ -65,6 +68,9 @@ services:
     build:
       context: ./Woori-Doori-BE
       dockerfile: Dockerfile
+      # 빌드 캐시 최적화 (인스턴스1과 동일한 빌드 캐시 활용)
+      cache_from:
+        - wooridoori-be:latest
     container_name: wooridoori-instance2
     # 외부 포트는 노출하지 않음 (Nginx를 통해서만 접근)
     expose:
@@ -168,6 +174,7 @@ services:
 volumes:
   nginx-logs:
   prometheus-data:
+  gradle-cache:  # Gradle 캐시 볼륨 (빌드 속도 향상)
 
 networks:
   wooridoori-network:

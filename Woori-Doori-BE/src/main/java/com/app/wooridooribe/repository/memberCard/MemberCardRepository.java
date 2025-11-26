@@ -15,4 +15,10 @@ public interface MemberCardRepository extends JpaRepository<MemberCard, Long>, M
             String cardUserRegistNum,
             String cardUserRegistBack
     );
+
+    List<MemberCard> findByCardUserNameAndCardUserRegistNumAndCardUserRegistBack(
+            String cardUserName,
+            String cardUserRegistNum,
+            String cardUserRegistBack
+    );
 }

@@ -13,9 +13,10 @@ scrape_configs:
   # 또는 k6의 결과를 파일로 저장하고 별도 프로세스로 수집합니다.
 
   # 우리두리 인스턴스 1 메트릭 (Spring Actuator)
+  # Docker 네트워크 내부에서는 컨테이너 이름으로 접근 (둘 다 8080 포트 사용)
   - job_name: 'wooridoori-instance1'
     static_configs:
-      - targets: ['172.16.1.120:8080']
+      - targets: ['wooridoori-instance1:8080']  # Docker 네트워크 내부 컨테이너 이름 사용
         labels:
           instance: 'wooridoori-instance1'
           server: '172.16.1.120'
@@ -23,9 +24,10 @@ scrape_configs:
     scrape_interval: 10s
 
   # 우리두리 인스턴스 2 메트릭 (Spring Actuator)
+  # Docker 네트워크 내부에서는 컨테이너 이름으로 접근 (둘 다 8080 포트 사용)
   - job_name: 'wooridoori-instance2'
     static_configs:
-      - targets: ['172.16.1.120:8081']  # 포트가 다르면 수정 필요
+      - targets: ['wooridoori-instance2:8080']  # Docker 네트워크 내부 컨테이너 이름 사용
         labels:
           instance: 'wooridoori-instance2'
           server: '172.16.1.120'
@@ -43,8 +45,9 @@ scrape_configs:
     scrape_interval: 15s
 
   # Nginx 메트릭 (nginx-prometheus-exporter 사용 시)
-  - job_name: 'nginx'
-    static_configs:
-      - targets: ['nginx-exporter:9113']
-    scrape_interval: 10s
+  # 주석 처리: nginx-exporter 서비스가 없으면 에러 발생
+  # - job_name: 'nginx'
+  #   static_configs:
+  #     - targets: ['nginx-exporter:9113']
+  #   scrape_interval: 10s
 
