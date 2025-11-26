@@ -571,6 +571,64 @@ public class GoalServiceImpl implements GoalService {
                 .topCategorySpending(topCategorySpending)
                 .build();
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ReportResponseDto getReportData(Long memberId) {
+        // 1. 이번 달 목표 조회
+        Goal currentGoal = goalRepository.findCurrentMonthGoalByMemberId(memberId)
+                .orElseThrow(() -> new CustomException(ErrorCode.GOAL_ISNULL));
+
+        LocalDate startDate = currentGoal.getGoalStartDate();
+        LocalDate today = LocalDate.now();
+        // 목표 기간의 종료일과 오늘 중 더 이른 날짜까지 계산 (진행 중인 목표의 경우 오늘까지만 계산)
+        LocalDate goalEndDate = startDate.plusDays(30);
+        LocalDate endDate = today.isBefore(goalEndDate) ? today : goalEndDate;
+        Integer goalAmount = currentGoal.getPreviousGoalMoney() != null ? currentGoal.getPreviousGoalMoney() : 0;
+
+        // 2. 이번 달 실제 지출 조회 (원 단위)
+        int actualSpending = cardHistoryRepository.getTotalSpentByMemberAndDateRange(
+                memberId, startDate, endDate);
+
+        // 4. Goal 엔티티에서 점수들 조회 후 총점수 계산 (null이면 0으로 설정)
+        Integer achievementScore = currentGoal.getGoalAchievementScore() != null
+                ? currentGoal.getGoalAchievementScore() : 0;
+        Integer stabilityScore = currentGoal.getGoalStabilityScore() != null
+                ? currentGoal.getGoalStabilityScore() : 0;
+        Integer ratioScore = currentGoal.getGoalRatioScore() != null
+                ? currentGoal.getGoalRatioScore() : 0;
+        Integer continuityScore = currentGoal.getGoalContinuityScore() != null
+                ? currentGoal.getGoalContinuityScore() : 0;
+
+        Integer goalScore = achievementScore + stabilityScore + ratioScore + continuityScore;
+
+        // 5. 카테고리별 소비 조회
+        List<Tuple> categorySpendingList = cardHistoryRepository
+                .getAllCategorySpendingByMemberAndDateRange(memberId, startDate, endDate);
+
+        // 금액 순으로 정렬 후 전체 추출
+        Map<CategoryType, Integer> CategorySpending = categorySpendingList.stream()
+                .map(tuple -> {
+                    CategoryType category = tuple.get(0, CategoryType.class);
+                    Integer amount = tuple.get(1, Integer.class) != null ? tuple.get(1, Integer.class) : 0;
+                    return new AbstractMap.SimpleEntry<>(category, amount);
+                })
+                .sorted((e1, e2) -> e2.getValue().compareTo(e1.getValue())) // 금액 내림차순 정렬
+                .limit(12)
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        Map.Entry::getValue,
+                        (v1, v2) -> v1,
+                        LinkedHashMap::new // 순서 유지
+                ));
+
+        return ReportResponseDto.builder()
+                .goalAmount(goalAmount)
+                .actualSpending(actualSpending)
+                .goalScore(goalScore)
+                .CategorySpending(CategorySpending)
+                .build();
+    }
     
     /**
      * 과거 목표 데이터 조회 (특정 년/월)
@@ -661,7 +719,7 @@ public class GoalServiceImpl implements GoalService {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
-        List<Goal> goals = goalRepository.findAllGoalsByMember(memberId);
+        List<Goal> goals = goalRepository.findPastGoalsByMember(memberId);
 
         if (goals == null || goals.isEmpty()) {
             throw new CustomException(ErrorCode.GOAL_ISNULL);

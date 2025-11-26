@@ -145,15 +145,10 @@ public class CardHistoryQueryDslImpl implements CardHistoryQueryDsl {
                         history.historyIncludeTotal.eq("Y")
                 )
                 .fetchOne();
-        
-        // 데이터가 없을 경우 0으로 설정 (SUM 결과가 null일 수 있음)
-        if (totalSpent == null) {
-            totalSpent = 0;
-        }
-        
-        log.info("getTotalSpentByMemberAndDateRange - memberId: {}, startDate: {}, endDate: {}, totalSpent: {}", 
+
+        log.info("getTotalSpentByMemberAndDateRange - memberId: {}, startDate: {}, endDate: {}, totalSpent: {}",
                 memberId, startDate, endDate, totalSpent);
-        
+
         return totalSpent;
     }
 
@@ -177,6 +172,28 @@ public class CardHistoryQueryDslImpl implements CardHistoryQueryDsl {
                 .groupBy(history.historyCategory)
                 .orderBy(history.historyPrice.sum().desc())
                 .limit(5)
+                .fetch();
+    }
+
+    @Override
+    public List<Tuple> getAllCategorySpendingByMemberAndDateRange(Long memberId, LocalDate startDate, LocalDate endDate) {
+        QCardHistory history = QCardHistory.cardHistory;
+        QMemberCard memberCard = QMemberCard.memberCard;
+
+        return queryFactory
+                .select(
+                        history.historyCategory,
+                        history.historyPrice.sum()
+                )
+                .from(history)
+                .join(history.memberCard, memberCard)
+                .where(
+                        memberCard.member.id.eq(memberId),
+                        history.historyDate.between(startDate, endDate),
+                        history.historyIncludeTotal.eq("Y")
+                )
+                .groupBy(history.historyCategory)
+                .orderBy(history.historyPrice.sum().desc())
                 .fetch();
     }
 
@@ -262,7 +279,7 @@ public class CardHistoryQueryDslImpl implements CardHistoryQueryDsl {
 
         // Tuple 리스트로 변환하여 반환 (기존 인터페이스와 호환)
         List<Tuple> results = new ArrayList<>();
-        
+
         // 필수 지출 Tuple 생성 (값이 0이어도 항상 반환)
         Tuple essentialTuple = queryFactory
                 .select(
@@ -272,11 +289,11 @@ public class CardHistoryQueryDslImpl implements CardHistoryQueryDsl {
                 .from(history)
                 .limit(1)
                 .fetchFirst();
-        
+
         if (essentialTuple != null) {
             results.add(essentialTuple);
         }
-        
+
         // 비필수 지출 Tuple 생성 (값이 0이어도 항상 반환)
         Tuple nonEssentialTuple = queryFactory
                 .select(
@@ -286,11 +303,11 @@ public class CardHistoryQueryDslImpl implements CardHistoryQueryDsl {
                 .from(history)
                 .limit(1)
                 .fetchFirst();
-        
+
         if (nonEssentialTuple != null) {
             results.add(nonEssentialTuple);
         }
-        
+
         return results;
     }
 
