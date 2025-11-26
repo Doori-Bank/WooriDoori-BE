@@ -19,6 +19,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Service
@@ -119,10 +120,15 @@ public class AuthServiceImpl implements AuthService {
             MemberDetail memberDetail = (MemberDetail) authentication.getPrincipal();
             TokenDto tokenDto = tokenProvider.generateTokenDto(memberDetail);
 
-            // 4. RefreshToken Redis에 저장
+            // 4. 최근 로그인 일시 업데이트
+            Member member = memberDetail.getMember();
+            member.setLastLoginDate(LocalDateTime.now());
+            memberRepository.save(member);
+
+            // 5. RefreshToken Redis에 저장
             refreshTokenService.saveRefreshToken(memberId, tokenDto.getRefreshToken());
 
-            // 5. LoginResponseDto 생성
+            // 6. LoginResponseDto 생성
             TokenRequestDto tokens = TokenRequestDto.builder()
                     .accessToken(tokenDto.getAccessToken())
                     .refreshToken(tokenDto.getRefreshToken())

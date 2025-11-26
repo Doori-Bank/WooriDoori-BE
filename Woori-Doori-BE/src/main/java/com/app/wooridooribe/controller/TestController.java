@@ -11,6 +11,8 @@ import com.app.wooridooribe.service.goal.GoalService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.util.List;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -91,19 +93,25 @@ public class TestController {
 
     @Operation(summary = "카드 원본 정보 조회 (테스트용)", description = "회원 이름 + 주민번호 정보로 카드 원본 데이터를 조회합니다.")
     @GetMapping("/card-info")
-    public ResponseEntity<ApiResponse<TestCardInfoDto>> getCardInfo(
+    public ResponseEntity<ApiResponse<List<TestCardInfoDto>>> getCardInfo(
             @Parameter(description = "카드 사용자 이름", required = true) @RequestParam String memberName,
             @Parameter(description = "주민등록번호 앞자리(6자리)", required = true) @RequestParam String registNum,
             @Parameter(description = "주민등록번호 뒷자리(1자리 또는 7자리)", required = true) @RequestParam String registBack
     ) {
+        List<TestCardInfoDto> cardInfos = memberCardRepository
+                .findByCardUserNameAndCardUserRegistNumAndCardUserRegistBack(memberName, registNum, registBack)
+                .stream()
+                .map(TestCardInfoDto::from)
+                .collect(Collectors.toList());
 
-        return memberCardRepository
-                .findFirstByCardUserNameAndCardUserRegistNumAndCardUserRegistBack(memberName, registNum, registBack)
-                .map(memberCard -> ResponseEntity.ok(
-                        ApiResponse.res(HttpStatus.OK.value(), "[TEST] 카드 정보 조회 성공", TestCardInfoDto.from(memberCard))
-                ))
-                .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(ApiResponse.res(HttpStatus.NOT_FOUND.value(), "[TEST] 카드 정보를 찾을 수 없습니다.", null)));
+        if (cardInfos.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.res(HttpStatus.NOT_FOUND.value(), "[TEST] 카드 정보를 찾을 수 없습니다.", null));
+        }
+
+        return ResponseEntity.ok(
+                ApiResponse.res(HttpStatus.OK.value(), "[TEST] 카드 정보 조회 성공", cardInfos)
+        );
     }
 }
 

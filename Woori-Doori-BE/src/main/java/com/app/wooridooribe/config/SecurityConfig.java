@@ -45,11 +45,14 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // 허용할 오리진 설정 (프론트엔드 주소 + 두리뱅크 주소 + Swagger UI를 위한 모든 오리진)
-        // Swagger UI는 서버와 같은 도메인에서 접근하므로 모든 오리진 허용
-        configuration.setAllowedOriginPatterns(Arrays.asList("*")); // 모든 오리진 허용 (개발/테스트 환경)
-        // 운영 환경에서는 아래처럼 특정 도메인만 허용하는 것이 안전합니다:
-        // configuration.setAllowedOrigins(Arrays.asList(frontendUrl, dooriBankUrl));
+        // 허용할 오리진 설정
+        // allowCredentials(true)일 때는 와일드카드(*)를 사용할 수 없으므로 명시적으로 설정
+        configuration.setAllowedOrigins(Arrays.asList(
+            frontendUrl,
+            dooriBankUrl,
+            "http://172.16.1.120:8080",  // Swagger UI 접근용
+            "http://localhost:8080"
+        ));
 
         // 허용할 HTTP 메서드
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));

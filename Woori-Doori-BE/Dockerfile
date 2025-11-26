@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.4
 # ---------- Build stage ----------
 FROM eclipse-temurin:17-jdk-alpine AS builder
 WORKDIR /build
@@ -7,12 +8,18 @@ COPY gradle ./gradle
 COPY gradlew ./
 COPY build.gradle settings.gradle ./
 
-# 의존성 다운로드 (캐시 활용)
-RUN chmod +x ./gradlew && ./gradlew dependencies --no-daemon || true
+# Gradle 캐시 디렉토리 생성 (BuildKit 캐시 마운트용)
+RUN mkdir -p /root/.gradle
 
-# 소스 코드 복사 및 빌드
+# 의존성 다운로드 (BuildKit 캐시 활용)
+RUN --mount=type=cache,target=/root/.gradle/caches \
+    chmod +x ./gradlew && ./gradlew dependencies --no-daemon || true
+
+# 소스 코드 복사 및 빌드 (BuildKit 캐시 활용)
 COPY src ./src
-RUN ./gradlew clean bootJar -x test --no-daemon
+# clean 제거 (Docker 빌드에서는 불필요, 캐시 활용)
+RUN --mount=type=cache,target=/root/.gradle/caches \
+    ./gradlew bootJar -x test --no-daemon
 
 # ---------- Runtime stage ----------
 FROM eclipse-temurin:17-jre-alpine
