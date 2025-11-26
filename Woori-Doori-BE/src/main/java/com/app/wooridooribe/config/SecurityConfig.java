@@ -45,8 +45,11 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // 허용할 오리진 설정 (프론트엔드 주소 + 두리뱅크 주소)
-        configuration.setAllowedOrigins(Arrays.asList(frontendUrl, dooriBankUrl));
+        // 허용할 오리진 설정 (프론트엔드 주소 + 두리뱅크 주소 + Swagger UI를 위한 모든 오리진)
+        // Swagger UI는 서버와 같은 도메인에서 접근하므로 모든 오리진 허용
+        configuration.setAllowedOriginPatterns(Arrays.asList("*")); // 모든 오리진 허용 (개발/테스트 환경)
+        // 운영 환경에서는 아래처럼 특정 도메인만 허용하는 것이 안전합니다:
+        // configuration.setAllowedOrigins(Arrays.asList(frontendUrl, dooriBankUrl));
 
         // 허용할 HTTP 메서드
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
@@ -95,6 +98,7 @@ public class SecurityConfig {
                         .requestMatchers("/auth/**").permitAll() // 인증 관련 경로는 모두 허용
                         .requestMatchers("/test/**").permitAll() // 테스트용 경로 (배포 전 삭제 필요!)
                         .requestMatchers("/ws/**").permitAll() // WebSocket 경로 허용
+                        .requestMatchers("/sse/test/**").permitAll() // SSE 테스트 경로는 인증 불필요 (Swagger UI 테스트용)
                         .requestMatchers("/sse/**").authenticated() // SSE 경로는 인증 필요
                         .requestMatchers("/files/**").permitAll() // 파일 경로 허용
                         .requestMatchers("/history/calendar/sync").permitAll() // 두리뱅킹 결제 동기화 경로 허용

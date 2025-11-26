@@ -94,9 +94,14 @@ public class AuthController {
     @PostMapping("send-verification")
     public ResponseEntity<ApiResponse<Void>> sendVerificationCode(
             @Parameter(description = "인증번호를 받을 이메일", required = true)
-            @RequestBody String email) {
-        
-        mailService.sendVerificationCode(email);
+            @RequestBody EmailRequestDto requestDto) {
+
+        String email = requestDto.getEmail();
+        if (email == null || email.trim().isEmpty()) {
+            throw new IllegalArgumentException("이메일 주소가 필요합니다.");
+        }
+
+        mailService.sendVerificationCode(email.trim());
         return ResponseEntity.ok(ApiResponse.res(200, "인증번호가 발송되었습니다. 이메일을 확인해주세요."));
     }
     
@@ -106,7 +111,6 @@ public class AuthController {
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "408", description = "인증 시간 초과")
     @PostMapping("verify-email")
     public ResponseEntity<ApiResponse<Boolean>> verifyEmailCode(@RequestBody EmailVerificationDto emailDto) {
-        
         boolean verified = mailService.verifyCode(emailDto.getEmail(), emailDto.getCode());
         return ResponseEntity.ok(ApiResponse.res(200, "이메일 인증이 완료되었습니다", verified));
     }
@@ -114,8 +118,7 @@ public class AuthController {
     @Operation(summary = "로그아웃", description = "Refresh Token을 삭제하여 로그아웃 처리합니다")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "로그아웃 성공")
     @PostMapping("logout")
-    public ResponseEntity<ApiResponse<Void>> logout(
-            @Parameter(hidden = true) Authentication authentication) {
+    public ResponseEntity<ApiResponse<Void>> logout(@Parameter(hidden = true) Authentication authentication) {
         
         MemberDetail principal = (MemberDetail) authentication.getPrincipal();
         authService.logout(principal.getUsername());

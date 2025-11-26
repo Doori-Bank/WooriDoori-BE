@@ -24,6 +24,8 @@ public interface CardService {
 
     UserCardResponseDto createUserCard(Long memberId, CardCreateRequestDto request);
 
+    UserCardResponseDto createUserCardWithoutCvc(Long memberId, CardCreateRequestDto request);
+
     void deleteCard(Long memberId, CardDeleteRequestDto request);
 
     void editCardAlias(Long memberId, CardEditRequestDto request);

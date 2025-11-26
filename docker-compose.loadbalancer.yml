@@ -17,10 +17,11 @@ services:
     networks:
       - wooridoori-network
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1"]
+      test: ["CMD-SHELL", "ps aux | grep -v grep | grep nginx || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 3
+      start_period: 5s
 
   # 우리두리 인스턴스 1
   wooridoori-instance1:
@@ -96,6 +97,30 @@ services:
       retries: 3
       start_period: 60s
 
+  # NodeExporter (시스템 메트릭 수집)
+  # host 네트워크 모드로 실행하여 실제 VM 호스트 메트릭을 정확하게 수집
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    network_mode: host
+    pid: host
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+      - '--collector.filesystem.fs-types-exclude=^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs)$$'
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9100/metrics"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   # Prometheus (메트릭 수집 및 저장)
   prometheus:
     image: prom/prometheus:latest
@@ -115,6 +140,8 @@ services:
     restart: unless-stopped
     networks:
       - wooridoori-network
+    depends_on:
+      - node-exporter
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
       interval: 30s
@@ -129,11 +156,14 @@ services:
       - ./load_test:/scripts:ro
     networks:
       - wooridoori-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # 외부 서버 접근용
     profiles:
       - loadtest  # 기본적으로는 실행되지 않음 (--profile loadtest로 실행)
+    # 컨테이너를 띄워두기 위해 기본 엔트리포인트를 sh로 전환
+    entrypoint: ["/bin/sh", "-c", "sleep infinity"]
     # 실제 테스트는 docker exec로 실행:
     # docker exec -it k6-runner k6 run --out prometheus=remote=http://prometheus:9090 /scripts/full_workflow_stress_test.js
-    command: sleep infinity  # 컨테이너를 유지하기 위해
 
 volumes:
   nginx-logs:

@@ -32,6 +32,16 @@ scrape_configs:
     metrics_path: '/actuator/prometheus'
     scrape_interval: 10s
 
+  # NodeExporter (시스템 메트릭: CPU, 메모리, 디스크 등)
+  # host 네트워크 모드로 실행되므로 VM 호스트 IP로 접근 (실제 VM 메트릭 수집)
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['172.16.1.120:9100']  # host 네트워크 모드이므로 VM 호스트 IP 사용
+        labels:
+          instance: 'was-server'
+          server: '172.16.1.120'
+    scrape_interval: 15s
+
   # Nginx 메트릭 (nginx-prometheus-exporter 사용 시)
   - job_name: 'nginx'
     static_configs:
