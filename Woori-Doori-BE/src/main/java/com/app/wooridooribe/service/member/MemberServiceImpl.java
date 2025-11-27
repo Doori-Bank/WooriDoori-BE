@@ -47,6 +47,20 @@ public class MemberServiceImpl implements MemberService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<MemberResponseDto> getMemberByNameForAdmin(String memberName) {
+        List<Member> members = memberRepository.findAllByMemberName(memberName);
+
+        if (members.isEmpty()) {
+            throw new CustomException(ErrorCode.USER_NOT_FOUND);
+        }
+
+        return members.stream()
+                .map(MemberResponseDto::from)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     @Transactional
     public void updateEssentialCategories(Long memberId, java.util.List<CategoryType> essentialCategories) {
         Member member = memberRepository.findById(memberId)

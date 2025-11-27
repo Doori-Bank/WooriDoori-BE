@@ -6,16 +6,22 @@ import com.app.wooridooribe.entity.type.CategoryType;
 import java.util.List;
 
 public interface MemberService {
-    
+
     /**
      * 전체 회원 조회 (관리자용)
      */
     List<MemberResponseDto> getAllMembers();
-    
+
     /**
      * 특정 회원 조회 (관리자용)
      */
     MemberResponseDto getMemberByIdForAdmin(Long memberId);
+
+    /**
+     * 회원 이름으로 회원 조회 (관리자용)
+     * 같은 이름을 가진 모든 회원을 반환합니다.
+     */
+    List<MemberResponseDto> getMemberByNameForAdmin(String memberName);
 
     /**
      * 회원의 필수 카테고리 설정 및 해당 카테고리 결제 내역 미포함 처리

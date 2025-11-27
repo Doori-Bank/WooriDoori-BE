@@ -22,6 +22,8 @@ import com.app.wooridooribe.repository.member.MemberRepository;
 import com.app.wooridooribe.repository.memberCard.MemberCardRepository;
 import com.app.wooridooribe.service.s3FileService.S3FileService;
 import com.querydsl.core.Tuple;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -46,6 +48,9 @@ public class CardServiceImpl implements CardService {
     private final CardHistoryRepository cardHistoryRepository;
     private final FileRepository fileRepository;
     private final S3FileService s3FileService;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     @Override
     @Transactional(readOnly = true)
@@ -102,7 +107,7 @@ public class CardServiceImpl implements CardService {
 
     @Override
     @Transactional
-    public CardResponseDto editCardForAdmin(AdminCardEditRequestDto request) {
+    public CardResponseDto editCardForAdmin(AdminCardEditRequestDto request, File cardImageFile, File cardBannerFile) {
         Long cardId = Objects.requireNonNull(request.getCardId(), "cardId must not be null");
         log.info("관리자 - 카드 수정 요청 수신: cardId={}", cardId);
 
@@ -141,28 +146,14 @@ public class CardServiceImpl implements CardService {
             card.setCardSvc(request.getCardSvc());
         }
 
-        // 카드 이미지 수정
-        if (request.getCardImageFileId() != null) {
-            Long cardImageFileId = Objects.requireNonNull(request.getCardImageFileId(),
-                    "cardImageFileId must not be null");
-            File cardImage = fileRepository.findById(cardImageFileId)
-                    .orElseThrow(() -> {
-                        log.warn("관리자 - 카드 수정 실패: 카드 이미지 파일을 찾을 수 없음 - fileId={}", cardImageFileId);
-                        return new CustomException(ErrorCode.FILE_NOT_FOUND);
-                    });
-            card.setCardImage(cardImage);
+        // 카드 이미지 수정 (새 파일이 제공된 경우)
+        if (cardImageFile != null) {
+            card.setCardImage(cardImageFile);
         }
 
-        // 카드 배너 수정
-        if (request.getCardBannerFileId() != null) {
-            Long cardBannerFileId = Objects.requireNonNull(request.getCardBannerFileId(),
-                    "cardBannerFileId must not be null");
-            File cardBanner = fileRepository.findById(cardBannerFileId)
-                    .orElseThrow(() -> {
-                        log.warn("관리자 - 카드 수정 실패: 카드 배너 파일을 찾을 수 없음 - fileId={}", cardBannerFileId);
-                        return new CustomException(ErrorCode.FILE_NOT_FOUND);
-                    });
-            card.setCardBanner(cardBanner);
+        // 카드 배너 수정 (새 파일이 제공된 경우)
+        if (cardBannerFile != null) {
+            card.setCardBanner(cardBannerFile);
         }
 
         Card savedCard = Objects.requireNonNull(cardRepository.save(card), "savedCard must not be null");
@@ -223,6 +214,12 @@ public class CardServiceImpl implements CardService {
 
         // 카드 삭제 (하드 삭제)
         cardRepository.delete(card);
+
+        // AUTO_INCREMENT 재설정 (삭제된 ID를 재사용하기 위해)
+        Long maxCardId = cardRepository.findMaxCardId();
+        Long nextId = (maxCardId == null || maxCardId == 0) ? 1L : maxCardId + 1;
+        entityManager.createNativeQuery("ALTER TABLE tbl_card AUTO_INCREMENT = " + nextId).executeUpdate();
+        log.info("관리자 - AUTO_INCREMENT 재설정 완료: nextId={}", nextId);
 
         log.info("관리자 - 카드 삭제 완료: cardId={}, cardName={}", safeCardId, card.getCardName());
     }

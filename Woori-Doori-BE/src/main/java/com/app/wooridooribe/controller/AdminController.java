@@ -11,9 +11,11 @@ import com.app.wooridooribe.controller.dto.CardResponseDto;
 import com.app.wooridooribe.controller.dto.MemberResponseDto;
 import com.app.wooridooribe.controller.dto.NotificationSendRequestDto;
 import com.app.wooridooribe.entity.Member;
+import com.app.wooridooribe.entity.Card;
 import com.app.wooridooribe.exception.CustomException;
 import com.app.wooridooribe.exception.ErrorCode;
 import com.app.wooridooribe.entity.File;
+import com.app.wooridooribe.repository.card.CardRepository;
 import com.app.wooridooribe.repository.file.FileRepository;
 import com.app.wooridooribe.repository.member.MemberRepository;
 import com.app.wooridooribe.service.member.MemberService;
@@ -35,6 +37,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 @Tag(name = "관리자", description = "관리자 전용 API (ADMIN 권한 필요)")
 @RestController
@@ -48,6 +51,7 @@ public class AdminController {
     private final CardService cardService;
     private final SseService sseService;
     private final MemberRepository memberRepository;
+    private final CardRepository cardRepository;
     private final S3FileService s3FileService;
     private final FileRepository fileRepository;
     private final ObjectMapper objectMapper;
@@ -62,16 +66,16 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.res(200, "사용자들을 정보를 불러왔습니다!", members));
     }
 
-    @Operation(summary = "특정 회원 조회", description = "회원 ID로 특정 회원 정보를 조회합니다 (관리자 전용)")
+    @Operation(summary = "특정 회원 조회", description = "회원 이름으로 회원 정보를 조회합니다. 같은 이름을 가진 모든 회원을 반환합니다 (관리자 전용)")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "회원을 찾을 수 없음")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "권한 없음")
-    @GetMapping("/members/{memberId}")
-    public ResponseEntity<ApiResponse<MemberResponseDto>> getMemberById(
-            @Parameter(description = "조회할 회원 ID", required = true) @PathVariable Long memberId) {
-        log.info("관리자 - 회원 조회: {}", memberId);
-        MemberResponseDto member = memberService.getMemberByIdForAdmin(memberId);
-        return ResponseEntity.ok(ApiResponse.res(200, "사용자 정보를 불러왔습니다!", member));
+    @GetMapping("/members/{memberName}")
+    public ResponseEntity<ApiResponse<List<MemberResponseDto>>> getMemberByName(
+            @Parameter(description = "조회할 회원 이름", required = true) @PathVariable String memberName) {
+        log.info("관리자 - 회원 조회: {}", memberName);
+        List<MemberResponseDto> members = memberService.getMemberByNameForAdmin(memberName);
+        return ResponseEntity.ok(ApiResponse.res(200, "사용자 정보를 불러왔습니다!", members));
     }
 
     @Operation(summary = "회원 권한 변경", description = "특정 회원의 권한을 USER 또는 ADMIN으로 변경합니다 (관리자 전용)")
@@ -244,20 +248,124 @@ public class AdminController {
         }
     }
 
-    @Operation(summary = "카드 정보 수정", description = "기존 카드의 정보를 수정합니다 (관리자 전용)")
+    @Operation(summary = "카드 정보 수정", description = "기존 카드의 정보를 수정합니다. 카드 이미지와 배너 이미지를 파일로 업로드하여 교체할 수 있습니다 (관리자 전용)")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "수정 성공")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "카드를 찾을 수 없음")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "권한 없음")
-    @PutMapping("/editCard")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류")
+    @PutMapping(value = "/editCard", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<CardResponseDto>> editCard(
-            @Parameter(description = "카드 수정 요청 정보", required = true) @Valid @RequestBody AdminCardEditRequestDto requestDto) {
-        log.info("관리자 - 카드 수정 요청 수신: cardId={}", requestDto.getCardId());
-        CardResponseDto updatedCard = cardService.editCardForAdmin(requestDto);
-        return ResponseEntity.ok(ApiResponse.res(200, "카드가 성공적으로 수정되었습니다!", updatedCard));
+            @Parameter(description = "카드 이미지 파일 (선택)") @RequestPart(value = "cardImage", required = false) MultipartFile cardImage,
+            @Parameter(description = "카드 배너 이미지 파일 (선택)") @RequestPart(value = "cardBanner", required = false) MultipartFile cardBanner,
+            @Parameter(description = "카드 수정 요청 정보 (JSON 문자열)", required = true) @RequestPart("cardInfo") String cardInfoJson) {
+        log.info("관리자 - 카드 수정 요청 수신: cardImage={}, cardBanner={}",
+                cardImage != null ? cardImage.getOriginalFilename() : "null",
+                cardBanner != null ? cardBanner.getOriginalFilename() : "null");
+
+        try {
+            // JSON 문자열을 DTO로 변환
+            AdminCardEditRequestDto requestDto = objectMapper.readValue(cardInfoJson,
+                    AdminCardEditRequestDto.class);
+            log.info("관리자 - 카드 수정 요청 파싱 완료: cardId={}, cardName={}", requestDto.getCardId(), requestDto.getCardName());
+
+            // 카드 조회
+            Card card = cardRepository.findById(requestDto.getCardId())
+                    .orElseThrow(() -> {
+                        log.warn("관리자 - 카드 수정 실패: 카드를 찾을 수 없음 - cardId={}", requestDto.getCardId());
+                        return new CustomException(ErrorCode.CARD_ISNULL);
+                    });
+
+            // 카드 이미지 교체 (파일이 제공된 경우)
+            File savedCardImageFile = null;
+            if (cardImage != null && !cardImage.isEmpty()) {
+                // 기존 카드 이미지 파일 삭제 (S3 및 DB)
+                File existingCardImage = card.getCardImage();
+                if (existingCardImage != null) {
+                    try {
+                        s3FileService.deleteImage(existingCardImage.getUuid());
+                        fileRepository.delete(existingCardImage);
+                        log.info("관리자 - 기존 카드 이미지 삭제 완료: fileId={}", existingCardImage.getId());
+                    } catch (Exception e) {
+                        log.error("관리자 - 기존 카드 이미지 삭제 중 오류 발생: fileId={}, error={}", existingCardImage.getId(),
+                                e.getMessage(), e);
+                    }
+                }
+
+                // 새 카드 이미지 S3 업로드 및 File 엔티티 생성
+                UploadedFileInfoDto cardImageInfo = s3FileService.uploadImage(cardImage, "card_images");
+                String cardImageOriginalName = cardImage.getOriginalFilename();
+                if (cardImageOriginalName == null) {
+                    cardImageOriginalName = "card_image";
+                }
+
+                File cardImageFile = File.builder()
+                        .uuid(cardImageInfo.getFileName())
+                        .fileOriginName(cardImageOriginalName)
+                        .filePath(cardImageInfo.getFileUrl())
+                        .fileType(cardImage.getContentType() != null ? cardImage.getContentType() : "image/jpeg")
+                        .build();
+                savedCardImageFile = fileRepository.save(cardImageFile);
+                log.info("관리자 - 새 카드 이미지 업로드 및 File 엔티티 생성 완료: fileId={}", savedCardImageFile.getId());
+            }
+
+            // 카드 배너 이미지 교체 (파일이 제공된 경우)
+            File savedCardBannerFile = null;
+            if (cardBanner != null && !cardBanner.isEmpty()) {
+                // 기존 카드 배너 이미지 파일 삭제 (S3 및 DB)
+                File existingCardBanner = card.getCardBanner();
+                if (existingCardBanner != null) {
+                    try {
+                        s3FileService.deleteImage(existingCardBanner.getUuid());
+                        fileRepository.delete(existingCardBanner);
+                        log.info("관리자 - 기존 카드 배너 이미지 삭제 완료: fileId={}", existingCardBanner.getId());
+                    } catch (Exception e) {
+                        log.error("관리자 - 기존 카드 배너 이미지 삭제 중 오류 발생: fileId={}, error={}", existingCardBanner.getId(),
+                                e.getMessage(), e);
+                    }
+                }
+
+                // 새 카드 배너 이미지 S3 업로드 및 File 엔티티 생성
+                UploadedFileInfoDto cardBannerInfo = s3FileService.uploadImage(cardBanner, "card_banner");
+                String cardBannerOriginalName = cardBanner.getOriginalFilename();
+                if (cardBannerOriginalName == null) {
+                    cardBannerOriginalName = "card_banner";
+                }
+
+                File cardBannerFile = File.builder()
+                        .uuid(cardBannerInfo.getFileName())
+                        .fileOriginName(cardBannerOriginalName)
+                        .filePath(cardBannerInfo.getFileUrl())
+                        .fileType(cardBanner.getContentType() != null ? cardBanner.getContentType() : "image/jpeg")
+                        .build();
+                savedCardBannerFile = fileRepository.save(cardBannerFile);
+                log.info("관리자 - 새 카드 배너 이미지 업로드 및 File 엔티티 생성 완료: fileId={}", savedCardBannerFile.getId());
+            }
+
+            // 카드 정보 수정
+            CardResponseDto updatedCard = cardService.editCardForAdmin(requestDto, savedCardImageFile,
+                    savedCardBannerFile);
+            log.info("관리자 - 카드 수정 완료: cardId={}, cardName={}", updatedCard.getId(), updatedCard.getCardName());
+            return ResponseEntity.ok(ApiResponse.res(200, "카드가 성공적으로 수정되었습니다!", updatedCard));
+
+        } catch (IOException e) {
+            log.error("관리자 - 카드 수정 실패: JSON 파싱 또는 파일 업로드 오류 - {}", e.getMessage(), e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.<CardResponseDto>builder()
+                            .statusCode(500)
+                            .errorResultMsg("카드 수정에 실패했습니다: " + e.getMessage())
+                            .build());
+        } catch (Exception e) {
+            log.error("관리자 - 카드 수정 실패: {}", e.getMessage(), e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.<CardResponseDto>builder()
+                            .statusCode(500)
+                            .errorResultMsg("카드 수정에 실패했습니다: " + e.getMessage())
+                            .build());
+        }
     }
 
-    @Operation(summary = "카드 삭제", description = "카드를 삭제합니다. status를 UNABLE로 변경하여 soft delete를 수행합니다 (관리자 전용)")
+    @Operation(summary = "카드 삭제", description = "카드를 하드 삭제합니다. 삭제 후 AUTO_INCREMENT가 재설정되어 삭제된 ID를 재사용할 수 있습니다 (관리자 전용)")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "삭제 성공")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "카드를 찾을 수 없음")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "410", description = "이미 삭제된 카드")
@@ -365,5 +473,107 @@ public class AdminController {
         log.info("관리자 - 리포트 알림 전송 완료: DB ID={}, 이메일={}, month={}",
                 memberId, requestDto.getMemberId(), currentMonth);
         return ResponseEntity.ok(ApiResponse.res(200, "리포트 알림이 성공적으로 전송되었습니다."));
+    }
+
+    @Operation(summary = "전체 사용자에게 일기 알림 전송", description = "모든 사용자에게 SSE를 통해 일기 알림을 전송합니다 (관리자 전용)")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "알림 전송 성공")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "권한 없음")
+    @PostMapping("/send/alldiary")
+    public ResponseEntity<ApiResponse<Void>> sendAllDiaryNotification() {
+        log.info("관리자 - 전체 사용자 일기 알림 전송 요청");
+
+        List<Member> allMembers = memberRepository.findAll();
+        int successCount = 0;
+        int failCount = 0;
+
+        for (Member member : allMembers) {
+            try {
+                sseService.sendDiaryNotification(member.getId());
+                successCount++;
+            } catch (Exception e) {
+                log.warn("관리자 - 일기 알림 전송 실패: memberId={}, 이메일={}, error={}",
+                        member.getId(), member.getMemberId(), e.getMessage());
+                failCount++;
+            }
+        }
+
+        log.info("관리자 - 전체 사용자 일기 알림 전송 완료: 총 회원 수={}, 성공={}, 실패={}",
+                allMembers.size(), successCount, failCount);
+        return ResponseEntity.ok(ApiResponse.res(200,
+                String.format("일기 알림 전송 완료 (총 %d명, 성공 %d명, 실패 %d명)", allMembers.size(), successCount, failCount)));
+    }
+
+    @Operation(summary = "전체 사용자에게 리포트 알림 전송", description = "모든 사용자에게 SSE를 통해 리포트 알림을 전송합니다 (관리자 전용)")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "알림 전송 성공")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "권한 없음")
+    @PostMapping("/send/allreport")
+    public ResponseEntity<ApiResponse<Void>> sendAllReportNotification() {
+        log.info("관리자 - 전체 사용자 리포트 알림 전송 요청");
+
+        List<Member> allMembers = memberRepository.findAll();
+        int currentMonth = java.time.LocalDate.now().getMonthValue();
+        int successCount = 0;
+        int failCount = 0;
+
+        for (Member member : allMembers) {
+            try {
+                sseService.sendReportNotification(member.getId(), currentMonth);
+                successCount++;
+            } catch (Exception e) {
+                log.warn("관리자 - 리포트 알림 전송 실패: memberId={}, 이메일={}, error={}",
+                        member.getId(), member.getMemberId(), e.getMessage());
+                failCount++;
+            }
+        }
+
+        log.info("관리자 - 전체 사용자 리포트 알림 전송 완료: 총 회원 수={}, 성공={}, 실패={}, month={}",
+                allMembers.size(), successCount, failCount, currentMonth);
+        return ResponseEntity.ok(ApiResponse.res(200,
+                String.format("리포트 알림 전송 완료 (총 %d명, 성공 %d명, 실패 %d명, 월: %d월)", allMembers.size(), successCount,
+                        failCount, currentMonth)));
+    }
+
+    @Operation(summary = "전체 사용자에게 커스텀 알림 전송", description = "모든 사용자에게 SSE를 통해 커스텀 알림을 전송합니다 (관리자 전용)")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "알림 전송 성공")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "권한 없음")
+    @PostMapping("/send/allcustom")
+    public ResponseEntity<ApiResponse<Void>> sendAllCustomNotification(
+            @Parameter(description = "알림 데이터", required = true) @RequestBody Map<String, Object> notificationData) {
+        log.info("관리자 - 전체 사용자 커스텀 알림 전송 요청");
+
+        try {
+            String eventName = (String) notificationData.getOrDefault("type", "message");
+            String jsonData = objectMapper.writeValueAsString(notificationData);
+
+            List<Member> allMembers = memberRepository.findAll();
+            int successCount = 0;
+            int failCount = 0;
+
+            for (Member member : allMembers) {
+                try {
+                    boolean sent = sseService.sendToUser(member.getId(), eventName, jsonData);
+                    if (sent) {
+                        successCount++;
+                    } else {
+                        failCount++;
+                    }
+                } catch (Exception e) {
+                    log.warn("관리자 - 커스텀 알림 전송 실패: memberId={}, 이메일={}, error={}",
+                            member.getId(), member.getMemberId(), e.getMessage());
+                    failCount++;
+                }
+            }
+
+            log.info("관리자 - 전체 사용자 커스텀 알림 전송 완료: 총 회원 수={}, 성공={}, 실패={}, 타입={}",
+                    allMembers.size(), successCount, failCount, eventName);
+            return ResponseEntity.ok(ApiResponse.res(200,
+                    String.format("커스텀 알림 전송 완료 (총 %d명, 성공 %d명, 실패 %d명, 타입: %s)", allMembers.size(), successCount,
+                            failCount, eventName)));
+        } catch (Exception e) {
+            log.error("관리자 - 전체 사용자 커스텀 알림 전송 실패: {}", e.getMessage(), e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error(500, "알림 전송 실패: " + e.getMessage()));
+        }
     }
 }
