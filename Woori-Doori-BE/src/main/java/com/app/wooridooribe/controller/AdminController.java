@@ -22,6 +22,7 @@ import com.app.wooridooribe.service.member.MemberService;
 import com.app.wooridooribe.service.card.CardService;
 import com.app.wooridooribe.service.sse.SseService;
 import com.app.wooridooribe.service.s3FileService.S3FileService;
+import com.app.wooridooribe.util.FileValidator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -114,6 +115,8 @@ public class AdminController {
                 file.getOriginalFilename(), file.getSize());
 
         try {
+            FileValidator.validateImage(file);
+
             UploadedFileInfoDto uploadedFile = s3FileService.uploadImage(file, "card_banner");
             log.info("관리자 - S3 카드 배너 이미지 업로드 성공: fileUrl={}, fileName={}",
                     uploadedFile.getFileUrl(), uploadedFile.getFileName());
@@ -140,6 +143,8 @@ public class AdminController {
                 file.getOriginalFilename(), file.getSize());
 
         try {
+            FileValidator.validateImage(file);
+
             UploadedFileInfoDto uploadedFile = s3FileService.uploadImage(file, "card_images");
             log.info("관리자 - S3 카드 이미지 업로드 성공: fileUrl={}, fileName={}",
                     uploadedFile.getFileUrl(), uploadedFile.getFileName());
