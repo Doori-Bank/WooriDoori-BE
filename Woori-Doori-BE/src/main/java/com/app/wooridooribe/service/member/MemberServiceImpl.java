@@ -48,11 +48,16 @@ public class MemberServiceImpl implements MemberService {
 
     @Override
     @Transactional(readOnly = true)
-    public MemberResponseDto getMemberByNameForAdmin(String memberName) {
-        Member member = memberRepository.findByMemberName(memberName)
-                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+    public List<MemberResponseDto> getMemberByNameForAdmin(String memberName) {
+        List<Member> members = memberRepository.findAllByMemberName(memberName);
 
-        return MemberResponseDto.from(member);
+        if (members.isEmpty()) {
+            throw new CustomException(ErrorCode.USER_NOT_FOUND);
+        }
+
+        return members.stream()
+                .map(MemberResponseDto::from)
+                .collect(Collectors.toList());
     }
 
     @Override

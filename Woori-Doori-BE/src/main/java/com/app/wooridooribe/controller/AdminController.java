@@ -66,16 +66,16 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.res(200, "사용자들을 정보를 불러왔습니다!", members));
     }
 
-    @Operation(summary = "특정 회원 조회", description = "회원 이름으로 특정 회원 정보를 조회합니다 (관리자 전용)")
+    @Operation(summary = "특정 회원 조회", description = "회원 이름으로 회원 정보를 조회합니다. 같은 이름을 가진 모든 회원을 반환합니다 (관리자 전용)")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "회원을 찾을 수 없음")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "권한 없음")
     @GetMapping("/members/{memberName}")
-    public ResponseEntity<ApiResponse<MemberResponseDto>> getMemberByName(
+    public ResponseEntity<ApiResponse<List<MemberResponseDto>>> getMemberByName(
             @Parameter(description = "조회할 회원 이름", required = true) @PathVariable String memberName) {
         log.info("관리자 - 회원 조회: {}", memberName);
-        MemberResponseDto member = memberService.getMemberByNameForAdmin(memberName);
-        return ResponseEntity.ok(ApiResponse.res(200, "사용자 정보를 불러왔습니다!", member));
+        List<MemberResponseDto> members = memberService.getMemberByNameForAdmin(memberName);
+        return ResponseEntity.ok(ApiResponse.res(200, "사용자 정보를 불러왔습니다!", members));
     }
 
     @Operation(summary = "회원 권한 변경", description = "특정 회원의 권한을 USER 또는 ADMIN으로 변경합니다 (관리자 전용)")
