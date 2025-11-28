@@ -13,7 +13,21 @@ public class FileValidator {
 
     public static void validateImage(MultipartFile file) {
 
-        String ext = getString(file);
+        if (file == null || file.isEmpty()) {
+            throw new RuntimeException("파일이 없습니다.");
+        }
+
+        // 1) 확장자 체크
+        String originalName = file.getOriginalFilename();
+        if (originalName == null || !originalName.contains(".")) {
+            throw new RuntimeException("올바르지 않은 파일 형식입니다.");
+        }
+
+        String ext = originalName.substring(originalName.lastIndexOf(".") + 1).toLowerCase();
+
+        if (!ALLOWED_EXTENSIONS.contains(ext)) {
+            throw new RuntimeException("허용되지 않은 확장자입니다: " + ext);
+        }
 
         // 2) MIME 타입 체크
         String mimeType = file.getContentType();
@@ -55,24 +69,5 @@ public class FileValidator {
         } catch (IOException e) {
             throw new RuntimeException("파일 검사 중 오류가 발생했습니다.");
         }
-    }
-
-    private static String getString(MultipartFile file) {
-        if (file == null || file.isEmpty()) {
-            throw new RuntimeException("파일이 없습니다.");
-        }
-
-        // 1) 확장자 체크
-        String originalName = file.getOriginalFilename();
-        if (originalName == null || !originalName.contains(".")) {
-            throw new RuntimeException("올바르지 않은 파일 형식입니다.");
-        }
-
-        String ext = originalName.substring(originalName.lastIndexOf(".") + 1).toLowerCase();
-
-        if (!ALLOWED_EXTENSIONS.contains(ext)) {
-            throw new RuntimeException("허용되지 않은 확장자입니다: " + ext);
-        }
-        return ext;
     }
 }
