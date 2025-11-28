@@ -34,7 +34,7 @@ public class FranchiseServiceImpl implements FranchiseService {
         QFile file = QFile.file;
 
         // 가맹점 이름 불러오기
-        List<Tuple> result = cardHistoryRepository.getCategoryStroeByMemberAndDateRange(memberId, categoryType, startDate, endDate);
+        List<Tuple> result = cardHistoryRepository.getCategoryStoreByMemberAndDateRange(memberId, categoryType, startDate, endDate);
         List<String> historyNames = result.stream().map(t -> t.get(history.historyName)).toList();
 
         // 가맹점 이름에 따른 로고 조회

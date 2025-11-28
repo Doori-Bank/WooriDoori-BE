@@ -50,5 +50,5 @@ public interface CardHistoryQueryDsl {
     List<Tuple> getEssentialNonEssentialSpending(Long memberId, LocalDate startDate, LocalDate endDate, List<CategoryType> essentialCategories);
 
     // 카테고리별 가맹점 TOP5 가맹점명 조회
-    List<Tuple> getCategoryStroeByMemberAndDateRange(Long memberId, CategoryType categoryType, LocalDate startDate, LocalDate endDate);
+    List<Tuple> getCategoryStoreByMemberAndDateRange(Long memberId, CategoryType categoryType, LocalDate startDate, LocalDate endDate);
 }

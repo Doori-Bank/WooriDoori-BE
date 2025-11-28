@@ -314,7 +314,7 @@ public class CardHistoryQueryDslImpl implements CardHistoryQueryDsl {
     /** 카테고리별 가맹점 TOP 5 가맹점명 조회
      * */
     @Override
-    public List<Tuple> getCategoryStroeByMemberAndDateRange(Long memberId, CategoryType categoryType, LocalDate startDate, LocalDate endDate) {
+    public List<Tuple> getCategoryStoreByMemberAndDateRange(Long memberId, CategoryType categoryType, LocalDate startDate, LocalDate endDate) {
         QCardHistory history = QCardHistory.cardHistory;
         QMemberCard memberCard = QMemberCard.memberCard;
 
