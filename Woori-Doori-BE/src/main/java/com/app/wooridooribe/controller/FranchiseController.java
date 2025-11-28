@@ -17,7 +17,7 @@ import java.util.List;
 
 @Tag(name = "가맹점", description = "가맹점 관련 API")
 @RestController
-@RequestMapping("/franchise/")
+@RequestMapping("/franchise")
 @RequiredArgsConstructor
 @Slf4j
 public class FranchiseController {
@@ -27,7 +27,7 @@ public class FranchiseController {
 
     @Operation(summary = "가맹점 TOP5 조회", description = "가맹점 TOP5 조회")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공")
-    @GetMapping("{category}")
+    @GetMapping("/{category}")
     public ResponseEntity<ApiResponse<List<FranchiseFileDto>>> search(
             @Parameter(hidden = true) Authentication authentication,
             @Parameter(description = "카테고리명", required = true) @PathVariable String category) {
