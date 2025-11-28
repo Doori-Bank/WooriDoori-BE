@@ -2,8 +2,6 @@ package com.app.wooridooribe.controller;
 
 import com.app.wooridooribe.controller.dto.ApiResponse;
 import com.app.wooridooribe.controller.dto.FranchiseFileDto;
-import com.app.wooridooribe.controller.dto.JoinDto;
-import com.app.wooridooribe.controller.dto.LoginResponseDto;
 import com.app.wooridooribe.jwt.MemberDetail;
 import com.app.wooridooribe.service.fanchise.FranchiseService;
 import io.swagger.v3.oas.annotations.Operation;

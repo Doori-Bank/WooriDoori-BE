@@ -1,6 +1,5 @@
 package com.app.wooridooribe.repository.franchise;
 
-import com.app.wooridooribe.controller.dto.FranchiseFileDto;
 import com.querydsl.core.Tuple;
 
 import java.util.List;
