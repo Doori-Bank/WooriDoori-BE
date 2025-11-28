@@ -311,5 +311,31 @@ public class CardHistoryQueryDslImpl implements CardHistoryQueryDsl {
         return results;
     }
 
+    /** 카테고리별 가맹점 TOP 5 가맹점명 조회
+     * */
+    @Override
+    public List<Tuple> getCategoryStroeByMemberAndDateRange(Long memberId, CategoryType categoryType, LocalDate startDate, LocalDate endDate) {
+        QCardHistory history = QCardHistory.cardHistory;
+        QMemberCard memberCard = QMemberCard.memberCard;
+
+        return queryFactory
+                .select(
+                        history.historyCategory,
+                        history.historyName
+                )
+                .from(history)
+                .join(history.memberCard, memberCard)
+                .where(
+                        memberCard.member.id.eq(memberId),
+                        history.historyDate.between(startDate, endDate),
+                        history.historyIncludeTotal.eq("Y"),
+                        history.historyCategory.eq(categoryType)
+                )
+                .groupBy(history.historyName)
+                .orderBy(history.historyName.count().desc())
+                .limit(5)
+                .fetch();
+    }
+
 }
 
