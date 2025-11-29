@@ -22,6 +22,7 @@ import com.app.wooridooribe.service.member.MemberService;
 import com.app.wooridooribe.service.card.CardService;
 import com.app.wooridooribe.service.sse.SseService;
 import com.app.wooridooribe.service.s3FileService.S3FileService;
+import com.app.wooridooribe.util.FileValidator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -34,6 +35,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.util.HtmlUtils;
 
 import java.io.IOException;
 import java.util.List;
@@ -72,9 +74,24 @@ public class AdminController {
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "권한 없음")
     @GetMapping("/members/{memberName}")
     public ResponseEntity<ApiResponse<List<MemberResponseDto>>> getMemberByName(
-            @Parameter(description = "조회할 회원 이름", required = true) @PathVariable String memberName) {
-        log.info("관리자 - 회원 조회: {}", memberName);
-        List<MemberResponseDto> members = memberService.getMemberByNameForAdmin(memberName);
+            @Parameter(description = "조회할 회원 이름", required = true)
+            @PathVariable String memberName) {
+
+        String sanitizedName = HtmlUtils.htmlEscape(memberName);
+
+        //입력값 길이 및 허용문자 검증
+        if (sanitizedName == null ||
+                !sanitizedName.matches("^[a-zA-Z가-힣0-9\\s_-]{1,30}$")) {
+            log.warn("잘못된 회원 이름 입력: {}", sanitizedName);
+
+            return ResponseEntity.badRequest().body(ApiResponse.res(
+                            400, "이름은 한글/영문/숫자, 공백, '-', '_'만 1~30자까지 입력 가능합니다.", null));
+        }
+
+        log.info("관리자 - 회원 조회: {}", sanitizedName);
+
+        List<MemberResponseDto> members = memberService.getMemberByNameForAdmin(sanitizedName);
+
         return ResponseEntity.ok(ApiResponse.res(200, "사용자 정보를 불러왔습니다!", members));
     }
 
@@ -114,6 +131,8 @@ public class AdminController {
                 file.getOriginalFilename(), file.getSize());
 
         try {
+            FileValidator.validateImage(file);
+
             UploadedFileInfoDto uploadedFile = s3FileService.uploadImage(file, "card_banner");
             log.info("관리자 - S3 카드 배너 이미지 업로드 성공: fileUrl={}, fileName={}",
                     uploadedFile.getFileUrl(), uploadedFile.getFileName());
@@ -140,6 +159,8 @@ public class AdminController {
                 file.getOriginalFilename(), file.getSize());
 
         try {
+            FileValidator.validateImage(file);
+
             UploadedFileInfoDto uploadedFile = s3FileService.uploadImage(file, "card_images");
             log.info("관리자 - S3 카드 이미지 업로드 성공: fileUrl={}, fileName={}",
                     uploadedFile.getFileUrl(), uploadedFile.getFileName());
