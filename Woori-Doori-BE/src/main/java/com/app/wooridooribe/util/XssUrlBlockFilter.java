@@ -1,5 +1,6 @@
 package com.app.wooridooribe.util;
 
+import com.app.wooridooribe.controller.dto.ApiResponse;
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -26,7 +27,7 @@ public class XssUrlBlockFilter implements Filter {
             HttpServletResponse res = (HttpServletResponse) response;
             res.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             res.setContentType("application/json;charset=UTF-8");
-            res.getWriter().write("{\"status\":400,\"message\":\"XSS 공격 패턴 감지됨\",\"data\":null}");
+            ApiResponse.res(400, "XSS 공격 패턴 감지되었습니다.", null);
             return;
         }
 

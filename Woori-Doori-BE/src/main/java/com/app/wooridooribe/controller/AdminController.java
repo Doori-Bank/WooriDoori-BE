@@ -81,7 +81,7 @@ public class AdminController {
 
         //입력값 길이 및 허용문자 검증
         if (sanitizedName == null ||
-                !sanitizedName.matches("^[a-zA-Z가-힣0-9\\s_-]{1,40}$")) {
+                !sanitizedName.matches("^[a-zA-Z가-힣0-9\\s_-]{1,30}$")) {
             log.warn("잘못된 회원 이름 입력: {}", sanitizedName);
 
             return ResponseEntity.badRequest().body(ApiResponse.res(
