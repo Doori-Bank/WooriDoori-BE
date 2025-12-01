@@ -261,7 +261,7 @@ public class CardServiceImpl implements CardService {
                 throw new CustomException(ErrorCode.INVALID_CARD_PASSWORD);
             }
             if (!memberCard.getExpiryMmYy().equals(request.getExpiryMmYy())) {
-                throw new CustomException(ErrorCode.CARD_EXPIRED);
+                // throw new CustomException(ErrorCode.CARD_EXPIRED);
             }
             // 주민등록번호 앞자리와 뒷자리 각각 검증
             log.debug("주민등록번호 검증 - DB: registNum={}, registBack={}, 요청: registNum={}, registBack={}",

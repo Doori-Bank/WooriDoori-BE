@@ -10,29 +10,27 @@ import { Rate } from 'k6/metrics';
 const errorRate = new Rate('errors');
 
 export const options = {
-  setupTimeout: '5m',  // setup 함수 타임아웃 5분으로 증가
+  setupTimeout: '5m',
   stages: [
-    { duration: '2m', target: 50 },     // 2분 동안 50명 (점진적 증가)
-    { duration: '5m', target: 100 },    // 5분 동안 100명
-    { duration: '5m', target: 200 },    // 5분 동안 200명
-    { duration: '5m', target: 300 },    // 5분 동안 300명
-    { duration: '5m', target: 0 },      // 5분 동안 0명으로 감소
+    { duration: '2m', target: 50 },
+    { duration: '5m', target: 100 },
+    { duration: '5m', target: 200 },
+    { duration: '5m', target: 300 },
+    { duration: '5m', target: 0 },
   ],
   thresholds: {
-    http_req_duration: ['p(95)<10000'], // 95% 요청이 10초 이내 (서버 과부하 고려)
-    http_req_failed: ['rate<0.30'],     // 에러율 30% 미만 (타임아웃 고려)
+    http_req_duration: ['p(95)<10000'],
+    http_req_failed: ['rate<0.30'],
     errors: ['rate<0.30'],
   },
 };
 
-// // 환경 변수에서 URL 가져오기 (없으면 기본값 사용)
-// const DOORIBANK_URL = "http://113.198.66.75:18177";
-// const WOORIDOORI_URL = "http://172.16.1.120:8080" ;
-// 환경 변수에서 URL 가져오기 (없으면 기본값 사용)
-const DOORIBANK_URL = "http://localhost:8081";
-const WOORIDOORI_URL = "http://localhost:8080" ;
+const DOORIBANK_URL = "http://113.198.66.77:18170";
+const WOORIDOORI_URL = "http://172.16.1.120:8080";
 
-// 테스트 시작 전에 실제 회원 데이터를 가져옵니다
+// 제외할 ID 목록을 상수로 선언
+const EXCLUDED_IDS = [28, 29, 30, 31, 32, 33, 34];
+
 export function setup() {
   console.log('=== DooriBank에서 실제 회원 데이터 가져오기 ===');
   console.log(`DooriBank URL: ${DOORIBANK_URL}`);
@@ -43,24 +41,19 @@ export function setup() {
   let response;
   try {
     response = http.get(url, {
-      timeout: '120s',  // 서버 과부하 시 타임아웃 증가 (2분)
+      timeout: '120s',
       tags: { name: 'Setup_GetMembers' },
     });
     
     console.log(`응답 상태: ${response.status}`);
     console.log(`응답 본문 길이: ${response.body ? response.body.length : 0} bytes`);
-    console.log(`응답 본문 (처음 500자): ${response.body ? response.body.substring(0, 500) : 'null'}`);
   } catch (e) {
     console.error(`HTTP 요청 실패: ${e.message}`);
-    console.error(`에러 스택: ${e.stack}`);
     return { members: [] };
   }
   
   if (!response || response.status !== 200) {
     console.error(`회원 데이터 조회 실패: ${response ? response.status : 'no response'}`);
-    console.error(`응답 본문: ${response ? response.body : 'no response body'}`);
-    console.error(`응답 헤더: ${response ? JSON.stringify(response.headers) : 'no headers'}`);
-    console.error(`에러 코드: ${response ? response.error_code : 'no error code'}`);
     return { members: [] };
   }
   
@@ -69,113 +62,75 @@ export function setup() {
     return { members: [] };
   }
   
-  // 응답 본문 정리 (앞뒤 공백 제거, BOM 제거)
   let bodyText = response.body.trim();
   if (bodyText.charCodeAt(0) === 0xFEFF) {
-    bodyText = bodyText.slice(1); // UTF-8 BOM 제거
+    bodyText = bodyText.slice(1);
   }
   
   try {
     let parsedData = JSON.parse(bodyText);
-    console.log(`파싱된 데이터 타입: ${Array.isArray(parsedData) ? 'Array' : typeof parsedData}`);
-    
     let members = null;
     
-    // 응답이 배열인 경우
     if (Array.isArray(parsedData)) {
       members = parsedData;
-      console.log(`직접 배열로 응답됨: ${members.length}개`);
-    }
-    // 응답이 객체로 감싸져 있는 경우 (여러 가능성 체크)
-    else if (typeof parsedData === 'object' && parsedData !== null) {
-      // 가능한 키 이름들 확인
+    } else if (typeof parsedData === 'object' && parsedData !== null) {
       if (Array.isArray(parsedData.data)) {
         members = parsedData.data;
-        console.log(`data 키에서 배열 찾음: ${members.length}개`);
       } else if (Array.isArray(parsedData.members)) {
         members = parsedData.members;
-        console.log(`members 키에서 배열 찾음: ${members.length}개`);
       } else if (Array.isArray(parsedData.result)) {
         members = parsedData.result;
-        console.log(`result 키에서 배열 찾음: ${members.length}개`);
       } else if (Array.isArray(parsedData.resultData)) {
         members = parsedData.resultData;
-        console.log(`resultData 키에서 배열 찾음: ${members.length}개`);
-      } else {
-        // 객체의 모든 키 확인
-        const keys = Object.keys(parsedData);
-        console.error(`응답이 배열이 아닙니다. 객체 키들: ${keys.join(', ')}`);
-        console.error(`응답 구조 (처음 500자): ${JSON.stringify(parsedData).substring(0, 500)}`);
-        return { members: [] };
       }
-    } else {
-      console.error(`응답이 배열도 객체도 아닙니다. 타입: ${typeof parsedData}`);
+    }
+    
+    if (!members || !Array.isArray(members) || members.length === 0) {
+      console.error(`회원 데이터를 찾을 수 없습니다.`);
       return { members: [] };
     }
     
-    // 최종 검증
-    if (!members || !Array.isArray(members)) {
-      console.error(`최종적으로 배열을 찾을 수 없습니다.`);
-      return { members: [] };
-    }
+    console.log(`=== ${members.length}명의 회원 데이터 로드 완료 ===`);
     
-    if (members.length === 0) {
-      console.warn(`회원 데이터 배열이 비어있습니다.`);
-      return { members: [] };
-    }
-    
-    console.log(`=== ${members.length}명의 실제 회원 데이터 로드 완료 ===`);
-    if (members.length > 0) {
-      console.log(`첫 번째 회원 데이터 예시: ${JSON.stringify(members[0])}`);
-      
-      // ID 28, 29, 30, 31, 32, 33, 34 제외
-      const excludedIds = [28, 29, 30, 31, 32, 33, 34];
-      const filteredMembers = members.filter(m => {
-        // id 필드가 있으면 필터링, 없으면 모든 회원 포함
-        if (m.id !== undefined && m.id !== null) {
-          const isExcluded = excludedIds.includes(m.id);
-          if (isExcluded) {
-            console.log(`제외된 회원: ID=${m.id}, 이름=${m.name}`);
-          }
-          return !isExcluded;
+    // ID 28~34 제외 (setup 단계에서 미리 필터링)
+    const filteredMembers = members.filter(m => {
+      if (m.id !== undefined && m.id !== null) {
+        const isExcluded = EXCLUDED_IDS.includes(m.id);
+        if (isExcluded) {
+          console.log(`제외된 회원: ID=${m.id}, 이름=${m.name}`);
         }
-        // id가 없으면 포함 (DooriBank에서 id를 반환하지 않는 경우)
-        console.warn(`⚠️ 회원 데이터에 id 필드가 없습니다: ${m.name}`);
-        return true;
-      });
-      console.log(`ID 28~34 제외 후: ${filteredMembers.length}명 / 전체: ${members.length}명`);
-      
-      // 계좌 정보가 있는 회원 수 확인
-      const membersWithAccount = filteredMembers.filter(m => m.accountNumber && m.accountPassword);
-      console.log(`계좌 정보가 있는 회원: ${membersWithAccount.length}명 / 필터링 후: ${filteredMembers.length}명`);
-      if (membersWithAccount.length > 0) {
-        console.log(`계좌 정보 예시: accountNumber=${membersWithAccount[0].accountNumber}, accountPassword=${membersWithAccount[0].accountPassword}`);
-        // 계좌 정보가 있는 회원만 사용
-        return { members: membersWithAccount };
-      } else {
-        console.warn(`⚠️ 경고: 계좌 정보가 있는 회원이 없습니다. 필터링된 모든 회원 데이터를 사용합니다.`);
-        console.warn(`⚠️ 두리뱅크 서버를 재시작했는지 확인하세요.`);
-        return { members: filteredMembers };
+        return !isExcluded;
       }
+      return true;
+    });
+    
+    console.log(`ID 28~34 제외 후: ${filteredMembers.length}명`);
+    
+    // 계좌 정보가 있는 회원만 필터링
+    const membersWithAccount = filteredMembers.filter(m => m.accountNumber && m.accountPassword);
+    console.log(`계좌 정보가 있는 회원: ${membersWithAccount.length}명`);
+    
+    if (membersWithAccount.length > 0) {
+      return { members: membersWithAccount };
+    } else {
+      console.warn(`⚠️ 계좌 정보가 있는 회원이 없습니다.`);
+      return { members: filteredMembers };
     }
-    return { members: members };
   } catch (e) {
     console.error(`회원 데이터 파싱 실패: ${e.message}`);
-    console.error(`에러 스택: ${e.stack}`);
-    console.error(`파싱 시도한 본문 (처음 1000자): ${bodyText.substring(0, 1000)}`);
-    console.error(`응답 본문 원본 (처음 200자): ${response.body.substring(0, 200)}`);
     return { members: [] };
   }
 }
 
-function getCardInfoForMember(memberName, birthDate, birthBack) {
-  if (!memberName || !birthDate || !birthBack) {
-    console.log(`[카드정보] 필수 파라미터 누락 - name: ${memberName}, birthDate: ${birthDate}, birthBack: ${birthBack}`);
-    return null;
+function getCardInfoForMember(member) {
+  if (!member || !member.name) {
+    console.log(`[카드정보] 회원 정보 누락`);
+    return [];
   }
 
-  const query = `memberName=${encodeURIComponent(memberName)}&registNum=${birthDate}&registBack=${birthBack}`;
-  const url = `${WOORIDOORI_URL}/test/card-info?${query}`;
+  // 두리뱅킹에서 회원의 모든 계좌를 조회 (계좌 = 카드로 사용)
+  const query = `memberName=${encodeURIComponent(member.name)}`;
+  const url = `${DOORIBANK_URL}/api/test/member-accounts?${query}`;
 
   try {
     const response = http.get(url, {
@@ -183,74 +138,78 @@ function getCardInfoForMember(memberName, birthDate, birthBack) {
       tags: { name: 'FetchCardInfo' },
     });
 
+    console.log(`[카드정보] ${member.name} - 응답 상태: ${response.status}`);
+
     if (response.status !== 200) {
-      console.log(`[카드정보] 조회 실패 - status: ${response.status}, body: ${response.body ? response.body.substring(0, 200) : 'null'}`);
-      return null;
+      console.log(`[카드정보] 조회 실패 - status: ${response.status}, body: ${response.body ? response.body.substring(0, 300) : 'null'}`);
+      return [];
     }
 
-    const parsed = JSON.parse(response.body);
-    if (!parsed || !parsed.resultData) {
-      console.log(`[카드정보] resultData가 없습니다 - body: ${response.body ? response.body.substring(0, 200) : 'null'}`);
-      return null;
+    const accounts = JSON.parse(response.body);
+    
+    if (Array.isArray(accounts)) {
+      console.log(`[카드정보] ${member.name} - ✅ ${accounts.length}개 계좌 조회 성공`);
+      if (accounts.length > 0) {
+        console.log(`[카드정보] ${member.name} - 계좌번호: ${accounts.map(a => a.accountNumber).join(', ')}`);
+      }
+      
+      // 계좌 정보를 카드 정보 형식으로 변환
+      return accounts.map((account, idx) => ({
+        cardNum: account.accountNumber,
+        cardPw: account.accountPassword,
+        expiryMmYy: '1229', // 테스트용 유효기간
+        cardUserRegistNum: member.memberRegistNum ? member.memberRegistNum.substring(0, 6) : '000000',
+        cardUserRegistBack: member.memberRegistNum ? member.memberRegistNum.substring(6, 7) : '1',
+        cardCvc: '123', // 테스트용 CVC
+        cardAlias: `${member.name}_계좌_${idx + 1}`,
+      }));
+    } else {
+      console.log(`[카드정보] ${member.name} - ❌ 예상치 못한 응답 형식`);
+      return [];
     }
-
-    return parsed.resultData;
   } catch (e) {
     console.log(`[카드정보] 요청 중 오류 - ${e.message}`);
-    return null;
+    return [];
   }
 }
 
 export default function (data) {
-  // 실제 회원 데이터가 없으면 스킵
   if (!data.members || data.members.length === 0) {
     console.log('실제 회원 데이터가 없습니다. 테스트를 건너뜁니다.');
     return;
   }
   
-  // 각 VU가 고유한 회원을 사용하도록 인덱스 계산
-  // VU 번호와 반복 횟수를 조합하여 고유한 인덱스 생성
-  // 최대 VU 수를 고려하여 회원 목록을 순환 사용
   const uniqueIndex = (__VU - 1) * 1000 + __ITER;
   const memberIndex = uniqueIndex % data.members.length;
   const member = data.members[memberIndex];
   
-  // ID 28, 29, 30, 31, 32, 33, 34는 처음부터 스킵 (회원가입도 하지 않음)
-  const excludedIds = [28, 29, 30, 31, 32, 33, 34];
-  if (member.id !== undefined && member.id !== null && excludedIds.includes(member.id)) {
-    console.log(`ID ${member.id} 회원은 테스트에서 제외됩니다: ${member.name}`);
+  // 이미 setup에서 필터링되었지만 이중 체크
+  if (member.id !== undefined && member.id !== null && EXCLUDED_IDS.includes(member.id)) {
+    console.log(`❌ ID ${member.id} 회원은 테스트에서 제외됩니다: ${member.name}`);
     return;
   }
   
-  // 원본 이름 유지 (각 회원이 한 번만 사용되도록 하려면 회원 목록을 충분히 크게 만들어야 함)
-  // 현재는 VU 수가 회원 수보다 많으면 순환 사용됨
   const memberName = member.name;
-  
-  // 이메일은 고유하게 생성
   const timestamp = Date.now();
   const randomSuffix = Math.random().toString(36).substring(7);
   const nameHash = member.name ? Array.from(member.name).map(c => c.charCodeAt(0).toString(36)).join('').substring(0, 5) : 'user';
   const email = `user${timestamp}_${randomSuffix}_${nameHash}@loadtest.com`;
   
-  // 주민번호 파싱 (7자리인 경우)
   let birthDate = null;
   let birthBack = null;
   if (member.memberRegistNum && member.memberRegistNum.length === 7) {
     birthDate = member.memberRegistNum.substring(0, 6);
     birthBack = member.memberRegistNum.substring(6, 7);
   } else {
-    // 주민번호가 없거나 형식이 다르면 랜덤 생성
     birthDate = `9${Math.floor(Math.random() * 10)}${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}`;
     birthBack = String(Math.floor(Math.random() * 4) + 1);
   }
   
-  // 전화번호 정규화 (하이픈 제거, 숫자만 추출)
   let phone = member.phone || '';
-  phone = phone.replace(/[^0-9]/g, ''); // 숫자만 추출
+  phone = phone.replace(/[^0-9]/g, '');
   
-  // 필수 필드 검증
   if (!member.name || !phone || !birthDate || !birthBack) {
-    console.error(`필수 필드 누락: name=${member.name}, phone=${phone}, birthDate=${birthDate}, birthBack=${birthBack}`);
+    console.error(`필수 필드 누락: name=${member.name}, phone=${phone}`);
     errorRate.add(1);
     return;
   }
@@ -261,20 +220,20 @@ export default function (data) {
   const signupPayload = JSON.stringify({
     id: email,
     password: password,
-    name: memberName,  // 원본 이름 사용
+    name: memberName,
     phone: phone,
     birthDate: birthDate,
     birthBack: birthBack,
   });
   
-  console.log(`회원가입 요청: ${memberName} (VU: ${__VU}, ITER: ${__ITER}, Index: ${memberIndex}), phone: ${phone}, birthDate: ${birthDate}, birthBack: ${birthBack}`);
+  console.log(`✅ 회원가입 요청: ${memberName} (VU: ${__VU}, Index: ${memberIndex})`);
 
   const signupRes = http.post(
     `${WOORIDOORI_URL}/auth/join`,
     signupPayload,
     {
       headers: { 'Content-Type': 'application/json' },
-      timeout: '60s',  // 서버 과부하 시 타임아웃 증가
+      timeout: '60s',
       tags: { name: 'Signup' },
     }
   );
@@ -284,25 +243,20 @@ export default function (data) {
   });
 
   if (signupSuccess) {
-    console.log(`회원가입 성공: ${memberName} (${email}), 상태: ${signupRes.status}`);
+    console.log(`✅ 회원가입 성공: ${memberName} (${email})`);
   } else {
     errorRate.add(1);
-    const errorBody = signupRes.body ? signupRes.body.substring(0, 500) : '응답 본문 없음';
-    console.log(`회원가입 실패: ${memberName} (${email}), 상태: ${signupRes.status}`);
-    console.log(`요청 페이로드: ${signupPayload}`);
-    console.log(`에러 응답: ${errorBody}`);
-    // 400 에러는 요청 형식 문제이므로 계속 진행하지 않음
+    console.log(`❌ 회원가입 실패: ${memberName}, 상태: ${signupRes.status}`);
     if (signupRes.status === 400) {
       return;
     }
-    // 다른 에러는 일단 계속 진행 (서버 에러일 수 있음)
   }
 
   sleep(1);
 
   // ========== 2단계: 로그인 ==========
   const loginPayload = JSON.stringify({
-    id: email,  // LoginDto는 @JsonProperty("id")로 설정되어 있음
+    id: email,
     password: password,
   });
 
@@ -311,7 +265,7 @@ export default function (data) {
     loginPayload,
     {
       headers: { 'Content-Type': 'application/json' },
-      timeout: '60s',  // 서버 과부하 시 타임아웃 증가
+      timeout: '60s',
       tags: { name: 'Login' },
     }
   );
@@ -320,14 +274,9 @@ export default function (data) {
     '로그인 성공': (r) => r.status === 200,
   });
 
-  if (loginSuccess) {
-    console.log(`로그인 성공: ${email}, 상태: ${loginRes.status}`);
-  } else {
+  if (!loginSuccess) {
     errorRate.add(1);
-    const errorBody = loginRes.body ? loginRes.body.substring(0, 500) : '응답 본문 없음';
-    console.log(`로그인 실패: ${email}, 상태: ${loginRes.status}`);
-    console.log(`요청 페이로드: ${loginPayload}`);
-    console.log(`에러 응답: ${errorBody}`);
+    console.log(`❌ 로그인 실패: ${email}, 상태: ${loginRes.status}`);
     return;
   }
 
@@ -337,70 +286,109 @@ export default function (data) {
     accessToken = loginData.resultData?.tokens?.accessToken;
   } catch (e) {
     errorRate.add(1);
-    console.log(`로그인 응답 파싱 실패: ${e.message}`);
+    console.log(`❌ 로그인 응답 파싱 실패: ${e.message}`);
     return;
   }
 
   if (!accessToken) {
     errorRate.add(1);
-    console.log(`액세스 토큰 없음: ${email}`);
+    console.log(`❌ 액세스 토큰 없음: ${email}`);
     return;
   }
 
-  // ID 28, 29, 30, 31, 32, 33, 34는 카드 등록 이후 단계 모두 스킵
-  if (member.id !== undefined && member.id !== null && excludedIds.includes(member.id)) {
-    console.log(`ID ${member.id} 회원은 카드 등록 이후 단계를 스킵합니다: ${email}`);
-    return;
-  }
-
+  console.log(`✅ 로그인 성공: ${email}`);
   sleep(1);
 
-  // ========== 3단계: 카드 등록 ==========
-  // 카드 정보 조회는 원본 이름 사용 (DooriBank DB의 실제 이름)
-  const cardInfo = getCardInfoForMember(memberName, birthDate, birthBack);
+  // ========== 3단계: 카드 등록 (모든 계좌를 카드로 등록) ==========
+  const cardInfos = getCardInfoForMember(member);
 
-  if (!cardInfo) {
-    console.log(`카드 등록 스킵: ${email} - 카드 원본 데이터 없음 (name: ${member.name}, birthDate: ${birthDate}, birthBack: ${birthBack})`);
+  if (!cardInfos || cardInfos.length === 0) {
+    console.log(`⚠️ 카드 등록 스킵: ${email} - 계좌 데이터 없음`);
     sleep(1);
   } else {
-    const cardPayload = JSON.stringify({
-      cardNum: cardInfo.cardNum,
-      cardPw: cardInfo.cardPw,
-      expiryMmYy: cardInfo.expiryMmYy,
-      cardUserRegistNum: cardInfo.cardUserRegistNum,
-      cardUserRegistBack: cardInfo.cardUserRegistBack,
-      cardCvc: cardInfo.cardCvc,
-      cardAlias: cardInfo.cardUserName ? `${cardInfo.cardUserName}_테스트카드` : `테스트카드_${__VU}`,
-    });
+    console.log(`💳 카드 등록 시작: ${email}, 총 ${cardInfos.length}개 카드`);
+    console.log(`💳 카드 목록: ${cardInfos.map(c => c.cardNum).join(', ')}`);
+    let registeredCount = 0;
 
-    const cardRes = http.patch(
-      `${WOORIDOORI_URL}/card/putCard`,
-      cardPayload,
+    for (let idx = 0; idx < cardInfos.length; idx++) {
+      const cardInfo = cardInfos[idx];
+      
+      const cardPayloadObj = {
+        cardNum: cardInfo.cardNum,
+        cardPw: cardInfo.cardPw,
+        expiryMmYy: cardInfo.expiryMmYy,
+        cardUserRegistNum: cardInfo.cardUserRegistNum,
+        cardUserRegistBack: cardInfo.cardUserRegistBack,
+        cardCvc: cardInfo.cardCvc,
+        cardAlias: cardInfo.cardAlias, // 이미 변환 함수에서 설정됨
+      };
+
+      const cardPayload = JSON.stringify(cardPayloadObj);
+      console.log(`💳 [${idx + 1}/${cardInfos.length}] 카드번호: ${cardInfo.cardNum}, 별칭: ${cardPayloadObj.cardAlias}`);
+
+      const cardRes = http.patch(
+        `${WOORIDOORI_URL}/test/card/putCard/no-cvc`,
+        cardPayload,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`,
+          },
+          timeout: '60s',
+          tags: { name: 'CardRegistration' },
+        }
+      );
+
+      console.log(`💳 [${idx + 1}/${cardInfos.length}] 응답 상태: ${cardRes.status}`);
+      if (cardRes.body) {
+        console.log(`💳 [${idx + 1}/${cardInfos.length}] 응답 본문: ${cardRes.body.substring(0, 300)}`);
+      }
+
+      const cardSuccess = check(cardRes, {
+        '카드 등록 성공': (r) => r.status === 200,
+      });
+
+      if (cardSuccess) {
+        registeredCount++;
+        console.log(`✅ 카드 등록 성공 (${idx + 1}/${cardInfos.length}): ${cardPayloadObj.cardAlias}`);
+      } else {
+        errorRate.add(1);
+        console.log(`❌ 카드 등록 실패 (${idx + 1}/${cardInfos.length}): 상태 ${cardRes.status}`);
+      }
+
+      // 각 카드 등록 사이에 충분한 딜레이 (DB 처리 시간 확보)
+      sleep(1);
+    }
+
+    console.log(`💳 카드 등록 완료: ${email} - ${registeredCount}/${cardInfos.length}개 성공`);
+    
+    // 모든 카드 등록 후 실제로 등록된 카드 수 확인
+    const verifyRes = http.get(
+      `${WOORIDOORI_URL}/card`,
       {
         headers: {
-          'Content-Type': 'application/json',
           Authorization: `Bearer ${accessToken}`,
         },
-        timeout: '60s',  // 서버 과부하 시 타임아웃 증가
-        tags: { name: 'CardRegistration' },
+        timeout: '30s',
+        tags: { name: 'VerifyCards' },
       }
     );
-
-    const cardSuccess = check(cardRes, {
-      '카드 등록 성공': (r) => r.status === 200,
-    });
-
-    if (cardSuccess) {
-      console.log(`카드 등록 성공: ${email}, 상태: ${cardRes.status}`);
-    } else {
-      errorRate.add(1);
-      const errorBody = cardRes.body ? cardRes.body.substring(0, 500) : '응답 본문 없음';
-      console.log(`카드 등록 실패: ${email}, 상태: ${cardRes.status}, 응답: ${errorBody}`);
-      console.log(`요청 페이로드: ${cardPayload}`);
-      // 카드 등록 실패해도 계속 진행 (목표 설정은 가능할 수 있음)
+    
+    if (verifyRes.status === 200) {
+      try {
+        const verifyData = JSON.parse(verifyRes.body);
+        const actualCardCount = verifyData.resultData ? verifyData.resultData.length : 0;
+        console.log(`🔍 등록 검증: ${email} - 시도 ${cardInfos.length}개, 성공 응답 ${registeredCount}개, 실제 등록 ${actualCardCount}개`);
+        
+        if (actualCardCount !== cardInfos.length) {
+          console.warn(`⚠️ 불일치 발견! ${email} - 예상 ${cardInfos.length}개 != 실제 ${actualCardCount}개`);
+        }
+      } catch (e) {
+        console.log(`⚠️ 카드 등록 검증 실패: ${e.message}`);
+      }
     }
     
-    sleep(1);
+    sleep(0.5);
   }
 
   // ========== 4단계: 목표 설정 ==========
@@ -409,18 +397,15 @@ export default function (data) {
   const currentYear = today.getFullYear();
   const goalStartDate = `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`;
 
-  // essentialCategories는 빈 배열로 보내는 것이 안전함
-  // 프론트엔드와 동일한 형식으로 보내기
   const goalPayloadObj = {
-    goalJob: 'SALARY', // 직장인 (JobType enum)
-    goalStartDate: goalStartDate, // "YYYY-MM-DD" 형식 (LocalDate로 변환됨)
-    goalIncome: '3000', // 월 수입 (String, 단위: 만원)
-    previousGoalMoney: 200, // 목표 소비금액 (Integer, 단위: 만원)
-    essentialCategories: [], // 필수 카테고리 (빈 배열로 보내기)
+    goalJob: 'SALARY',
+    goalStartDate: goalStartDate,
+    goalIncome: '3000',
+    previousGoalMoney: 200,
+    essentialCategories: [],
   };
   
   const goalPayload = JSON.stringify(goalPayloadObj);
-  console.log(`목표 설정 요청 페이로드: ${goalPayload}`);
 
   const goalRes = http.put(
     `${WOORIDOORI_URL}/goal/setgoal`,
@@ -430,7 +415,7 @@ export default function (data) {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${accessToken}`,
       },
-      timeout: '60s',  // 서버 과부하 시 타임아웃 증가
+      timeout: '60s',
       tags: { name: 'SetGoal' },
     }
   );
@@ -440,19 +425,16 @@ export default function (data) {
   });
 
   if (goalSuccess) {
-    console.log(`목표 설정 성공: ${email}, 상태: ${goalRes.status}`);
+    console.log(`✅ 목표 설정 성공: ${email}`);
   } else {
     errorRate.add(1);
-    const errorBody = goalRes.body ? goalRes.body.substring(0, 500) : '응답 본문 없음';
-    console.log(`목표 설정 실패: ${email}, 상태: ${goalRes.status}, 응답: ${errorBody}`);
-    console.log(`요청 페이로드: ${goalPayload}`);
+    console.log(`❌ 목표 설정 실패: ${email}, 상태: ${goalRes.status}`);
   }
 
   sleep(1);
 
-  // ========== 5단계: 목표 점수 계산 (배치 처리) ==========
-  // 모든 사용자가 목표를 설정한 후 점수 계산 실행
-  const shouldTriggerBatch = (__VU === 1 && __ITER === 0); // 첫 번째 VU의 첫 반복에서만 실행
+  // ========== 5단계: 목표 점수 계산 ==========
+  const shouldTriggerBatch = (__VU === 1 && __ITER === 0);
   if (shouldTriggerBatch) {
     const calculateRes = http.get(
       `${WOORIDOORI_URL}/test/goal-score/calculate`,
@@ -460,7 +442,7 @@ export default function (data) {
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
-        timeout: '120s',  // 배치 처리이므로 타임아웃 증가
+        timeout: '120s',
         tags: { name: 'CalculateGoalScore' },
       }
     );
@@ -470,29 +452,23 @@ export default function (data) {
     });
 
     if (calculateSuccess) {
-      const responseText = calculateRes.body ? calculateRes.body.substring(0, 200) : '응답 본문 없음';
-      console.log(`목표 점수 계산 성공(단 한 번 실행): 상태 ${calculateRes.status}, 응답: ${responseText}`);
+      console.log(`✅ 목표 점수 계산 성공`);
     } else {
       errorRate.add(1);
-      const errorBody = calculateRes.body ? calculateRes.body.substring(0, 500) : '응답 본문 없음';
-      console.log(`목표 점수 계산 실패(단 한 번 실행): 상태 ${calculateRes.status}, 응답: ${errorBody}`);
-      // 계산 실패해도 리포트 조회는 계속 진행 (이미 계산된 데이터가 있을 수 있음)
+      console.log(`❌ 목표 점수 계산 실패: 상태 ${calculateRes.status}`);
     }
 
-    sleep(2); // 배치 처리 후 잠시 대기
-  } else {
-    console.log(`목표 점수 계산은 첫 번째 VU만 실행합니다. 현재 VU=${__VU}, ITER=${__ITER}`);
+    sleep(2);
   }
 
-  // ========== 6단계: 소비 리포트 조회 (월말 시나리오) ==========
-  // 점수 계산 후 리포트 조회
+  // ========== 6단계: 소비 리포트 조회 ==========
   const dashboardRes = http.get(
     `${WOORIDOORI_URL}/goal/report`,
     {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
-      timeout: '60s',  // 서버 과부하 시 타임아웃 증가
+      timeout: '60s',
       tags: { name: 'ReportCheck' },
     }
   );
@@ -502,11 +478,10 @@ export default function (data) {
   });
 
   if (reportSuccess) {
-    console.log(`리포트 조회 성공: ${email}, 상태: ${dashboardRes.status}`);
+    console.log(`✅ 리포트 조회 성공: ${email}`);
   } else {
     errorRate.add(1);
-    const errorBody = dashboardRes.body ? dashboardRes.body.substring(0, 500) : '응답 본문 없음';
-    console.log(`리포트 조회 실패: ${email}, 상태: ${dashboardRes.status}, 응답: ${errorBody}`);
+    console.log(`❌ 리포트 조회 실패: ${email}, 상태: ${dashboardRes.status}`);
   }
 
   sleep(1);
@@ -523,7 +498,6 @@ function textSummary(data, options) {
   let summary = '\n';
   summary += '='.repeat(60) + '\n';
   summary += '우리두리 전체 워크플로우 스트레스 테스트 결과\n';
-  summary += '(실제 DooriBank 회원 데이터 사용)\n';
   summary += '='.repeat(60) + '\n';
   summary += `총 요청 수: ${data.metrics.http_reqs.values.count}\n`;
   summary += `성공률: ${((1 - data.metrics.http_req_failed.values.rate) * 100).toFixed(2)}%\n`;
@@ -534,10 +508,9 @@ function textSummary(data, options) {
   summary += '\n';
   summary += '단계별 통계:\n';
   
-  // 각 태그별 통계 추출
   const tags = ['Signup', 'Login', 'CardRegistration', 'SetGoal', 'CalculateGoalScore', 'ReportCheck'];
   tags.forEach(tag => {
-    const tagData = data.metrics.http_req_duration.values.tags[tag];
+    const tagData = data.metrics.http_req_duration.values.tags?.[tag];
     if (tagData) {
       summary += `  ${tag}: 평균 ${tagData.avg.toFixed(2)}ms, 최대 ${tagData.max.toFixed(2)}ms\n`;
     }
@@ -546,4 +519,3 @@ function textSummary(data, options) {
   summary += '='.repeat(60) + '\n';
   return summary;
 }
-

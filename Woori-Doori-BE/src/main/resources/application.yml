@@ -148,3 +148,17 @@ management:
   endpoint:
     health:
       show-details: always
+  metrics:
+    tags:
+      application: ${spring.application.name}
+      instance: ${HOSTNAME:unknown}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+      percentiles:
+        http.server.requests: 0.5, 0.95, 0.99
+    web:
+      server:
+        request:
+          autotime:
+            enabled: true
