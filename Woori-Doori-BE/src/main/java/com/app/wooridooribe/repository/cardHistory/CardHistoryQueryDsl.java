@@ -48,4 +48,7 @@ public interface CardHistoryQueryDsl {
 
     // 필수/비필수 지출 금액 조회 (카테고리 기반)
     List<Tuple> getEssentialNonEssentialSpending(Long memberId, LocalDate startDate, LocalDate endDate, List<CategoryType> essentialCategories);
+
+    // 카테고리별 가맹점 TOP5 가맹점명 조회
+    List<Tuple> getCategoryStoreByMemberAndDateRange(Long memberId, CategoryType categoryType, LocalDate startDate, LocalDate endDate);
 }
