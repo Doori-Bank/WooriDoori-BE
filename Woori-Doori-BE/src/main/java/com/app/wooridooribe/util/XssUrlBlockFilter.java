@@ -20,16 +20,6 @@ public class XssUrlBlockFilter implements Filter {
             throws IOException, ServletException {
 
         HttpServletRequest req = (HttpServletRequest) request;
-        String uri = req.getRequestURI();
-
-        // XSS 문자열이 URL에 포함된 경우 즉시 차단
-        if (XSS_PATTERN.matcher(uri).find()) {
-            HttpServletResponse res = (HttpServletResponse) response;
-            res.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            res.setContentType("application/json;charset=UTF-8");
-            ApiResponse.res(400, "XSS 공격 패턴 감지되었습니다.", null);
-            return;
-        }
 
         chain.doFilter(request, response);
         if (uri == null) {
