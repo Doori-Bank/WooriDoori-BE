@@ -1,0 +1,46 @@
+#!/bin/bash
+
+echo "Creating .env file from ECS environment variables..."
+
+cat <<EOF > /app/.env
+S3_BUCKET=$S3_BUCKET
+S3_ACCESS_KEY=$S3_ACCESS_KEY
+S3_SECRET_KEY=$S3_SECRET_KEY
+S3_CLIENT=$S3_CLIENT
+S3_REGION=$S3_REGION
+
+JWT=$JWT
+
+DB1_URL=$DB1_URL
+DB1_USERNAME=$DB1_USERNAME
+DB1_PASSWORD=$DB1_PASSWORD
+
+DB2_URL=$DB2_URL
+DB2_USERNAME=$DB2_USERNAME
+DB2_PASSWORD=$DB2_PASSWORD
+
+REDIS_URL=$REDIS_URL
+REDIS_PORT=$REDIS_PORT
+
+NAVER_MAIL=$NAVER_MAIL
+NAVER_PW=$NAVER_PW
+
+FRONTEND_URL=$FRONTEND_URL
+
+GROQ_API_KEY=$GROQ_API_KEY
+OLLAMA_BASE_URL=$OLLAMA_BASE_URL
+CHROMA_BASE_URL=$CHROMA_BASE_URL
+
+DOORIBANK_URL=$DOORIBANK_URL
+EOF
+
+echo ".env created at /app/.env"
+
+echo "Exporting .env variables to environment..."
+set -a
+source /app/.env
+set +a
+
+echo "Environment loaded. Starting Spring Boot..."
+
+exec java -jar app.jar

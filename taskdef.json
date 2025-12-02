@@ -8,7 +8,7 @@
   "containerDefinitions": [
     {
       "name": "app",
-      "image": "${ECR_URI}:${IMAGE_TAG}",
+      "image": "dummy",
       "essential": true,
       "portMappings": [
         {
@@ -24,38 +24,7 @@
           "awslogs-region": "ap-northeast-2",
           "awslogs-stream-prefix": "app"
         }
-      },
-      "environment": [
-        { "name": "S3_BUCKET", "value": "${S3_BUCKET}" },
-        { "name": "S3_ACCESS_KEY", "value": "${S3_ACCESS_KEY}" },
-        { "name": "S3_SECRET_KEY", "value": "${S3_SECRET_KEY}" },
-        { "name": "S3_CLIENT", "value": "${S3_CLIENT}" },
-        { "name": "S3_REGION", "value": "${S3_REGION}" },
-
-        { "name": "JWT", "value": "${JWT}" },
-
-        { "name": "DB1_URL", "value": "${DB1_URL}" },
-        { "name": "DB1_USERNAME", "value": "${DB1_USERNAME}" },
-        { "name": "DB1_PASSWORD", "value": "${DB1_PASSWORD}" },
-
-        { "name": "DB2_URL", "value": "${DB2_URL}" },
-        { "name": "DB2_USERNAME", "value": "${DB2_USERNAME}" },
-        { "name": "DB2_PASSWORD", "value": "${DB2_PASSWORD}" },
-
-        { "name": "REDIS_URL", "value": "${REDIS_URL}" },
-        { "name": "REDIS_PORT", "value": "${REDIS_PORT}" },
-
-        { "name": "NAVER_MAIL", "value": "${NAVER_MAIL}" },
-        { "name": "NAVER_PW", "value": "${NAVER_PW}" },
-
-        { "name": "FRONTEND_URL", "value": "${FRONTEND_URL}" },
-
-        { "name": "GROQ_API_KEY", "value": "${GROQ_API_KEY}" },
-        { "name": "OLLAMA_BASE_URL", "value": "${OLLAMA_BASE_URL}" },
-        { "name": "CHROMA_BASE_URL", "value": "${CHROMA_BASE_URL}" },
-
-        { "name": "DOORIBANK_URL", "value": "${DOORIBANK_URL}" }
-      ]
+      }
     }
   ]
 }
