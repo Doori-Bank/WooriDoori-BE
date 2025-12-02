@@ -32,9 +32,9 @@ ENV JAVA_OPTS=""
 # 빌드된 JAR 파일 복사
 COPY --from=builder /build/build/libs/*.jar app.jar
 
-# non-root 사용자 생성(보안)
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup \
- && chown -R appuser:appgroup /app
+# # non-root 사용자 생성(보안)
+# RUN addgroup -S appgroup && adduser -S appuser -G appgroup \
+#  && chown -R appuser:appgroup /app
 
 USER appuser
 
