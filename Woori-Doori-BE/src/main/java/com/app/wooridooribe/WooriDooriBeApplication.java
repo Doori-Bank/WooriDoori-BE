@@ -8,9 +8,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class WooriDooriBeApplication {
 
     public static void main(String[] args) {
-        Dotenv dotenv = Dotenv.configure()
-                  .ignoreIfMissing()
-                  .load();
+        Dotenv dotenv = Dotenv.load();
         dotenv.entries().forEach(entry ->
                 System.setProperty(entry.getKey(), entry.getValue())
         );
