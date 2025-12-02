@@ -20,19 +20,17 @@ public class XssUrlBlockFilter implements Filter {
             throws IOException, ServletException {
 
         HttpServletRequest req = (HttpServletRequest) request;
-
-        chain.doFilter(request, response);
-        String uri = request.getRequestURI();
+        String uri = ((HttpServletRequest) request).getRequestURI();
         if (uri == null) {
             uri = "";
         }
-        
-        String query = request.getQueryString();
+
+        String query = ((HttpServletRequest) request).getQueryString();
         if (query == null) {
             query = "";
         }
-        
-        // XSS 차단 패턴 검사
+
+// XSS 차단 패턴 검사
         if (uri.contains("<script>") || query.contains("<script>")) {
             HttpServletResponse res = (HttpServletResponse) response;
             res.setStatus(HttpServletResponse.SC_BAD_REQUEST);
@@ -40,6 +38,7 @@ public class XssUrlBlockFilter implements Filter {
             res.getWriter().write("{\"status\":400,\"message\":\"XSS 공격 패턴 감지됨\",\"data\":null}");
             return;
         }
+
+        chain.doFilter(request, response);
     }
 }
-
