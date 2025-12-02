@@ -32,6 +32,14 @@ public class XssUrlBlockFilter implements Filter {
         }
 
         chain.doFilter(request, response);
+        if (uri == null) {
+            uri = "";
+        }
+        
+        String query = request.getQueryString();
+        if (query == null) {
+            query = "";
+        }
     }
 }
 
