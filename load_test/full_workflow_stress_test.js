@@ -402,7 +402,7 @@ export default function (data) {
     goalStartDate: goalStartDate,
     goalIncome: '3000',
     previousGoalMoney: 200,
-    essentialCategories: [],
+    essentialCategories: ['TELECOM','FOOD','HOSPITAL','EDUCATION'],
   };
   
   const goalPayload = JSON.stringify(goalPayloadObj);

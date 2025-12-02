@@ -111,6 +111,15 @@ spring:
       mail.smtp.auth: true
       mail.smtp.ssl.enable: true
       mail.smtp.ssl.trust: smtp.naver.com
+
+  # Spring Batch 설정
+  batch:
+    job:
+      enabled: false # 자동 실행 비활성화 (수동 실행만 허용)
+    jdbc:
+      initialize-schema: always # JobRepository 테이블 자동 생성 (개발 환경)
+      table-prefix: BATCH_ # JobRepository 테이블 접두사
+
 jwt:
   secret: ${JWT}
 
