@@ -35,8 +35,7 @@ COPY --from=builder /build/build/libs/*.jar app.jar
 # # non-root 사용자 생성(보안)
 # RUN addgroup -S appgroup && adduser -S appuser -G appgroup \
 #  && chown -R appuser:appgroup /app
-
-USER appuser
+# USER appuser
 
 EXPOSE 8080
 
