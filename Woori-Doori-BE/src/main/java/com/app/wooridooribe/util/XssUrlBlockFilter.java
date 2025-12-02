@@ -22,6 +22,7 @@ public class XssUrlBlockFilter implements Filter {
         HttpServletRequest req = (HttpServletRequest) request;
 
         chain.doFilter(request, response);
+        String uri = request.getRequestURI();
         if (uri == null) {
             uri = "";
         }
@@ -29,6 +30,15 @@ public class XssUrlBlockFilter implements Filter {
         String query = request.getQueryString();
         if (query == null) {
             query = "";
+        }
+        
+        // XSS 차단 패턴 검사
+        if (uri.contains("<script>") || query.contains("<script>")) {
+            HttpServletResponse res = (HttpServletResponse) response;
+            res.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            res.setContentType("application/json;charset=UTF-8");
+            res.getWriter().write("{\"status\":400,\"message\":\"XSS 공격 패턴 감지됨\",\"data\":null}");
+            return;
         }
     }
 }
