@@ -281,13 +281,29 @@ jobs:
       # ======================================================
       # ECR Push
       # ======================================================
-      - name: Configure AWS Credentials
+      - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
-  
+
+      - name: Login to Amazon ECR
+        run: |
+          aws ecr get-login-password --region $AWS_REGION \
+            | docker login --username AWS --password-stdin $ECR_URI
+
+      - name: Build Docker image
+        run: |
+          docker build -t $ECR_URI:$IMAGE_TAG \
+          -f eks_spring_boot/Dockerfile eks_spring_boot
+
+      - name: Push Docker image
+        run: docker push $ECR_URI:$IMAGE_TAG
+
+      ###################################################
+      # 3) Create new Task Definition
+      ###################################################
       - name: Render new task definition
         id: render_taskdef
         uses: aws-actions/amazon-ecs-render-task-definition@v1
@@ -295,8 +311,11 @@ jobs:
           task-definition: taskdef.json
           container-name: ${{ env.CONTAINER_NAME }}
           image: ${{ env.ECR_URI }}:${{ env.IMAGE_TAG }}
-  
-      - name: Deploy to ECS (Blue/Green)
+
+      ###################################################
+      # 4) ECS Blue/Green Deploy
+      ###################################################
+      - name: Deploy to ECS via CodeDeploy (Blue/Green)
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
         with:
           task-definition: ${{ steps.render_taskdef.outputs.task-definition }}
@@ -305,5 +324,4 @@ jobs:
           codedeploy-application: ${{ env.CODEDEPLOY_APP }}
           codedeploy-deployment-group: ${{ env.CODEDEPLOY_DG }}
           codedeploy-appspec: appspec.json
-          codedeploy-task-definition: ${{ steps.render_taskdef.outputs.task-definition }}   # ★ 반드시 필요
           wait-for-service-stability: true
