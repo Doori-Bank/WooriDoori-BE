@@ -14,6 +14,7 @@ import com.app.wooridooribe.repository.goal.GoalRepository;
 import com.querydsl.core.Tuple;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,9 +45,6 @@ public class MainServiceImpl implements MainService {
 
         LocalDate goalStartDate = latestGoal.getGoalStartDate();
         LocalDate today = LocalDate.now();
-        
-        // 목표 기간: 시작일로부터 30일 (한 달)
-        LocalDate goalEndDate = goalStartDate.plusDays(30);
         
         // 2. 날짜 계산
         int fullDate = 30; // 전체 목표 기간
@@ -118,7 +116,8 @@ public class MainServiceImpl implements MainService {
         }
 
         // 7. 가장 많이 사용한 카드 TOP 3 조회 및 카드 배너 정보 가져오기 (QueryDSL)
-        List<Tuple> topUsedCards = cardHistoryRepository.getTopUsedCards();
+        // 캐싱된 메서드 사용 (전역 캐시, 1시간 TTL)
+        List<Tuple> topUsedCards = getTopUsedCardsCached();
         
         List<CardRecommendDto> cardRecommend = new ArrayList<>();
         if (!topUsedCards.isEmpty()) {
@@ -168,6 +167,18 @@ public class MainServiceImpl implements MainService {
                  memberId, totalPaidMoney, goalPercent, remainingDays);
         
         return mainDto;
+    }
+
+    /**
+     * 가장 많이 사용한 카드 TOP 3 조회 (캐싱 적용)
+     * 전역 캐시로 관리되며, 72시간 동안 캐싱됨.
+     * 
+     * @return 가장 많이 사용한 카드 TOP 3 (카드 ID, 사용 횟수)
+     */
+    @Cacheable(value = "topUsedCards", key = "'global'")
+    public List<Tuple> getTopUsedCardsCached() {
+        log.info("가장 많이 사용한 카드 TOP 3 조회 (DB 쿼리 실행)");
+        return cardHistoryRepository.getTopUsedCards();
     }
 }
 

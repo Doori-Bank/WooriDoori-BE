@@ -1,5 +1,7 @@
 package com.app.wooridooribe.controller;
 
+import com.app.wooridooribe.batch.writer.GoalScoreItemWriter;
+import com.app.wooridooribe.config.MetricsConfig;
 import com.app.wooridooribe.controller.dto.ApiResponse;
 import com.app.wooridooribe.controller.dto.CardCreateRequestDto;
 import com.app.wooridooribe.controller.dto.TestCardInfoDto;
@@ -8,13 +10,20 @@ import com.app.wooridooribe.jwt.MemberDetail;
 import com.app.wooridooribe.repository.memberCard.MemberCardRepository;
 import com.app.wooridooribe.service.card.CardService;
 import com.app.wooridooribe.service.goal.GoalService;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.batch.core.Job;
+import org.springframework.batch.core.JobParameters;
+import org.springframework.batch.core.JobParametersBuilder;
+import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -41,6 +50,11 @@ public class TestController {
     private final GoalService goalService;
     private final CardService cardService;
     private final MemberCardRepository memberCardRepository;
+    private final MeterRegistry meterRegistry;
+    private final MetricsConfig metricsConfig;
+    private final JobLauncher jobLauncher;
+    private final Job calculateGoalScoreJob;
+    private final GoalScoreItemWriter goalScoreItemWriter;
     
     @Operation(summary = "비밀번호 암호화", description = "평문 비밀번호를 BCrypt로 암호화합니다 (개발용)")
     @GetMapping("/encode")
@@ -63,16 +77,74 @@ public class TestController {
         return "평문: " + raw + "\n암호화: " + encoded + "\n매칭 결과: " + matches;
     }
 
-    @Operation(summary = "목표 점수 수동 계산", description = "월말 스케줄러 대신 수동으로 배치 점수 계산을 실행합니다 (개발용)")
+    @Operation(summary = "목표 점수 수동 계산", description = "Spring Batch를 사용하여 멀티스레딩으로 청크 단위 배치 점수 계산을 실행합니다 (개발용). 비동기로 실행되므로 즉시 응답됩니다. 실제 처리 결과는 서버 로그를 확인하세요.")
     @GetMapping("/goal-score/calculate")
     public String calculateGoalScoresManually() {
-        try {
-            int processedCount = goalService.calculateAllActiveUsersScores();
-            return "배치 점수 계산 완료 - 처리된 유저 수: " + processedCount;
-        } catch (Exception e) {
-            log.error("수동 배치 점수 계산 실패", e);
-            return "배치 점수 계산 실패: " + e.getMessage();
-        }
+        // 비동기 작업 시작 시간 기록
+        long startTime = System.currentTimeMillis();
+        metricsConfig.getAsyncJobStartTime().set(startTime);
+        
+        // 비동기 작업 시작 카운터
+        meterRegistry.counter("async.job.started", "job", "goal-score-calculation").increment();
+        
+        // Writer 카운터 리셋
+        goalScoreItemWriter.resetCounters();
+        
+        // 비동기로 실행하여 즉시 응답 반환 (타임아웃 방지)
+        CompletableFuture.runAsync(() -> {
+            Timer.Sample timerSample = Timer.start(meterRegistry);
+            try {
+                log.info("=== Spring Batch 배치 점수 계산 시작 (멀티스레딩) ===");
+                
+                // Job 파라미터 생성 (매번 고유한 JobInstance를 위해 타임스탬프 추가)
+                JobParameters jobParameters = new JobParametersBuilder()
+                        .addLong("timestamp", System.currentTimeMillis())
+                        .toJobParameters();
+                
+                // Spring Batch Job 실행
+                jobLauncher.run(calculateGoalScoreJob, jobParameters);
+                
+                // 처리 결과 가져오기
+                int successCount = goalScoreItemWriter.getSuccessCount();
+                int skippedCount = goalScoreItemWriter.getSkippedCount();
+                int failedCount = goalScoreItemWriter.getFailedCount();
+                
+                // 비동기 작업 성공 카운터
+                meterRegistry.counter("async.job.completed", 
+                        "job", "goal-score-calculation",
+                        "status", "success").increment();
+                
+                // 비동기 작업 완료 시간 기록
+                long endTime = System.currentTimeMillis();
+                metricsConfig.getAsyncJobEndTime().set(endTime);
+                
+                // 비동기 작업 처리 시간 기록
+                timerSample.stop(meterRegistry.timer("async.job.duration",
+                        "job", "goal-score-calculation",
+                        "status", "success"));
+                
+                log.info("=== Spring Batch 배치 점수 계산 완료 - 성공: {}, 스킵: {}, 실패: {} ===", 
+                        successCount, skippedCount, failedCount);
+            } catch (Exception e) {
+                // 비동기 작업 실패 카운터
+                meterRegistry.counter("async.job.failed",
+                        "job", "goal-score-calculation",
+                        "status", "failure").increment();
+                
+                // 비동기 작업 완료 시간 기록 (실패해도)
+                long endTime = System.currentTimeMillis();
+                metricsConfig.getAsyncJobEndTime().set(endTime);
+                
+                // 비동기 작업 처리 시간 기록 (실패)
+                timerSample.stop(meterRegistry.timer("async.job.duration",
+                        "job", "goal-score-calculation",
+                        "status", "failure"));
+                
+                log.error("=== Spring Batch 배치 점수 계산 실패 ===", e);
+            }
+        });
+        
+        return "Spring Batch 배치 점수 계산이 백그라운드에서 시작되었습니다 (멀티스레딩, 청크 단위 처리). 처리 결과는 서버 로그를 확인하세요.";
     }
 
     @Operation(summary = "카드 등록 (테스트용 CVC 검증 생략)", description = "기존 카드 정보를 CVC 검증 없이 연결합니다. 개발/테스트 전용 엔드포인트입니다.")
@@ -108,7 +180,7 @@ public class TestController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(ApiResponse.res(HttpStatus.NOT_FOUND.value(), "[TEST] 카드 정보를 찾을 수 없습니다.", null));
         }
-
+        log.info(cardInfos.toString());
         return ResponseEntity.ok(
                 ApiResponse.res(HttpStatus.OK.value(), "[TEST] 카드 정보 조회 성공", cardInfos)
         );

@@ -1,0 +1,30 @@
+{
+  "family": "wooridoori-task",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["EC2"],
+  "cpu": "256",
+  "memory": "512",
+  "executionRoleArn": "arn:aws:iam::576003025010:role/Ecs-Task-Execution-Role",
+  "containerDefinitions": [
+    {
+      "name": "app",
+      "image": "dummy",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 8080,
+          "hostPort": 8080,
+          "protocol": "tcp"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/wooridoori",
+          "awslogs-region": "ap-northeast-2",
+          "awslogs-stream-prefix": "app"
+        }
+      }
+    }
+  ]
+}

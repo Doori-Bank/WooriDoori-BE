@@ -46,12 +46,13 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         
         // 허용할 오리진 설정
-        // allowCredentials(true)일 때는 와일드카드(*)를 사용할 수 없으므로 명시적으로 설정
-        configuration.setAllowedOrigins(Arrays.asList(
-            frontendUrl,
-            dooriBankUrl,
-            "http://172.16.1.120:8080",  // Swagger UI 접근용
-            "http://localhost:8080"
+        // Spring Boot 3.x에서는 setAllowedOriginPatterns() 사용 권장 (와일드카드 패턴 지원)
+        configuration.setAllowedOriginPatterns(Arrays.asList(
+                frontendUrl,
+                dooriBankUrl,
+                "http://172.16.1.120:*",  // 포트 번호 와일드카드 지원
+                "http://172.16.1.120",
+                "http://localhost:*"  // 로컬 개발 환경 포트 유연하게 처리
         ));
 
         // 허용할 HTTP 메서드
@@ -65,6 +66,9 @@ public class SecurityConfig {
         
         // preflight 요청 캐시 시간
         configuration.setMaxAge(3600L);
+        
+        // CORS 응답 헤더 노출 설정 (클라이언트에서 접근 가능한 헤더)
+        configuration.setExposedHeaders(Arrays.asList("*"));
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

@@ -2,7 +2,6 @@ package com.app.wooridooribe.config;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -17,5 +16,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
         registry.addInterceptor(sseInterceptor)
                 .addPathPatterns("/sse/**");
     }
+
+    // CORS 설정은 SecurityConfig에서 관리하므로 여기서는 제거
 }
 
