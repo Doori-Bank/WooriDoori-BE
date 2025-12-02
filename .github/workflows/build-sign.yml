@@ -48,13 +48,14 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
 
       - name: Permission for gradlew
-        run: chmod +x gradlew
+        run: chmod +x Woori-Doori-BE/gradlew
 
       - name: Build with Gradle
         id: gradle_build
         continue-on-error: true
         run: |
           set -o pipefail
+          cd Woori-Doori-BE
           ./gradlew clean build -x test |& tee build.log
 
       # --------------------
