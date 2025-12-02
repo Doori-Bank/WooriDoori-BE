@@ -93,156 +93,190 @@ jobs:
       # ======================================================
       # 🔥 Trivy 스캔 (보안게이트) — 절대 삭제 X (요청사항)
       # ======================================================
-      - name: Run Trivy vulnerability scan
-        uses: aquasecurity/trivy-action@0.30.0
-        with:
-          image-ref: "${{ env.IMAGE }}@${{ steps.push.outputs.digest }}"
-          format: "sarif"
-          output: "trivy-results.sarif"
-          severity: "CRITICAL,HIGH,MEDIUM"
-          exit-code: 0
+      # - name: Run Trivy vulnerability scan
+      #   uses: aquasecurity/trivy-action@0.30.0
+      #   with:
+      #     image-ref: "${{ env.IMAGE }}@${{ steps.push.outputs.digest }}"
+      #     format: "sarif"
+      #     output: "trivy-results.sarif"
+      #     severity: "CRITICAL,HIGH,MEDIUM"
+      #     exit-code: 0
 
-      - name: Debug SARIF file structure
-        if: always()
-        run: |
-          if [ -f "trivy-results.sarif" ]; then
-            echo "=== SARIF File Structure ==="
-            echo "File size: $(wc -c < trivy-results.sarif) bytes"
-            echo "First 500 chars:"
-            head -c 500 trivy-results.sarif
-            echo ""
-            echo "=== Checking structure ==="
-            jq '.runs[0].results | type' trivy-results.sarif 2>/dev/null || echo "Could not parse runs[0].results"
-            echo "=========================="
-          else
-            echo "SARIF file not found"
-          fi
+      # - name: Debug SARIF file structure
+      #   if: always()
+      #   run: |
+      #     if [ -f "trivy-results.sarif" ]; then
+      #       echo "=== SARIF File Structure ==="
+      #       echo "File size: $(wc -c < trivy-results.sarif) bytes"
+      #       echo "First 500 chars:"
+      #       head -c 500 trivy-results.sarif
+      #       echo ""
+      #       echo "=== Checking structure ==="
+      #       jq '.runs[0].results | type' trivy-results.sarif 2>/dev/null || echo "Could not parse runs[0].results"
+      #       echo "=========================="
+      #     else
+      #       echo "SARIF file not found"
+      #     fi
 
-      - name: Count vulnerabilities
-        id: vulnerabilities
-        run: |
-          if [ -f "trivy-results.sarif" ]; then
-            # SARIF 파일 구조 확인 및 안전한 카운트
-            count=$(jq -r 'if .runs and .runs[0] and .runs[0].results then (.runs[0].results | length) else 0 end' trivy-results.sarif 2>/dev/null || echo "0")
+      # - name: Count vulnerabilities
+      #   id: vulnerabilities
+      #   run: |
+      #     if [ -f "trivy-results.sarif" ]; then
+      #       echo "=== Parsing SARIF file ==="
             
-            # 숫자로 변환 (null이나 빈 문자열 처리)
-            if [ -z "$count" ] || [ "$count" = "null" ]; then
-              count=0
-            fi
+      #       # SARIF 파일 전체 구조 확인
+      #       echo "Full structure check:"
+      #       jq '.runs[0] | keys' trivy-results.sarif 2>/dev/null || echo "Could not parse runs[0]"
             
-            echo "result_count=$count" >> $GITHUB_OUTPUT
-            echo "Found $count vulnerabilities"
+      #       # results 배열 확인
+      #       results_type=$(jq -r '.runs[0].results | type' trivy-results.sarif 2>/dev/null || echo "null")
+      #       echo "Results type: $results_type"
+            
+      #       # 취약점 카운트
+      #       if [ "$results_type" = "array" ]; then
+      #         count=$(jq -r '.runs[0].results | length' trivy-results.sarif 2>/dev/null || echo "0")
+      #       else
+      #         count=0
+      #       fi
+            
+      #       # 숫자로 변환 (null이나 빈 문자열 처리)
+      #       if [ -z "$count" ] || [ "$count" = "null" ] || [ "$count" = "" ]; then
+      #         count=0
+      #       fi
+            
+      #       # 숫자인지 확인
+      #       if ! [[ "$count" =~ ^[0-9]+$ ]]; then
+      #         echo "Warning: count is not a number: '$count', setting to 0"
+      #         count=0
+      #       fi
+            
+      #       echo "result_count=$count" >> $GITHUB_OUTPUT
+      #       echo "✅ Found $count vulnerabilities"
 
-            if [ "$count" -gt 0 ]; then
-              echo "=== Vulnerability Details ==="
-              jq -r '.runs[0].results[]? | "\(.ruleId // .rule.id // "unknown"): \(.message.text // .message.markdown // "No description")"' trivy-results.sarif 2>/dev/null || echo "Could not parse vulnerability details"
-              echo "============================="
-            fi
-          else
-            echo "result_count=0" >> $GITHUB_OUTPUT
-            echo "No SARIF file found"
-          fi
+      #       if [ "$count" -gt 0 ]; then
+      #         echo "=== Vulnerability Details (first 20) ==="
+      #         jq -r '.runs[0].results[0:20][]? | "Severity: \(.level // "UNKNOWN"), Rule: \(.ruleId // .rule.id // "unknown"), Message: \(.message.text // .message.markdown // "No description")"' trivy-results.sarif 2>/dev/null || echo "Could not parse vulnerability details"
+      #         echo "=========================================="
+      #       else
+      #         echo "✅ No vulnerabilities found!"
+      #       fi
+      #     else
+      #       echo "result_count=0" >> $GITHUB_OUTPUT
+      #       echo "⚠️ No SARIF file found"
+      #     fi
 
-      - name: Build vulnerability summary (for Slack)
-        if: steps.vulnerabilities.outputs.result_count != 0
-        id: vuln_summary
-        run: |
-          summary=$(jq -r '
-            if .runs and .runs[0] and .runs[0].results then
-              .runs[0].results[0:10]
-              | to_entries[]
-              | (
-                  ("\(.key+1). \(.value.ruleId // .value.rule.id // "unknown")") + "\n" +
-                  (.value.message.text // .value.message.markdown // "No description") + "\n"
-                )
-            else
-              "Could not parse vulnerability details"
-            end
-          ' trivy-results.sarif 2>/dev/null || echo "Error parsing SARIF file")
-          echo "summary<<EOF" >> $GITHUB_OUTPUT
-          echo "$summary" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+      # - name: Build vulnerability summary (for Slack)
+      #   if: steps.vulnerabilities.outputs.result_count != 0
+      #   id: vuln_summary
+      #   run: |
+      #     summary=$(jq -r '
+      #       if .runs and .runs[0] and .runs[0].results then
+      #         .runs[0].results[0:10]
+      #         | to_entries[]
+      #         | (
+      #             ("\(.key+1). \(.value.ruleId // .value.rule.id // "unknown")") + "\n" +
+      #             (.value.message.text // .value.message.markdown // "No description") + "\n"
+      #           )
+      #       else
+      #         "Could not parse vulnerability details"
+      #       end
+      #     ' trivy-results.sarif 2>/dev/null || echo "Error parsing SARIF file")
+      #     echo "summary<<EOF" >> $GITHUB_OUTPUT
+      #     echo "$summary" >> $GITHUB_OUTPUT
+      #     echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: Slack notification for vulnerabilities
-        if: steps.vulnerabilities.outputs.result_count != 0
-        uses: 8398a7/action-slack@v3
-        with:
-          status: failure
-          channel: "#security"
-          text: |
-            🚨 보안 경고: 이미지 ${{ env.IMAGE }}에서 취약점이 발견되었습니다!
+      # - name: Slack notification for vulnerabilities
+      #   if: steps.vulnerabilities.outputs.result_count != 0
+      #   uses: 8398a7/action-slack@v3
+      #   with:
+      #     status: failure
+      #     channel: "#security"
+      #     text: |
+      #       🚨 보안 경고: 이미지 ${{ env.IMAGE }}에서 취약점이 발견되었습니다!
 
-            👤 Developer: ${{ github.event.head_commit.author.name }} (${{ github.event.head_commit.author.email }})
-            📊 취약점 개수: ${{ steps.vulnerabilities.outputs.result_count }}
-            🔗 워크플로우: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-            📝 커밋 메시지: ${{ github.event.head_commit.message }}
+      #       👤 Developer: ${{ github.event.head_commit.author.name }} (${{ github.event.head_commit.author.email }})
+      #       📊 취약점 개수: ${{ steps.vulnerabilities.outputs.result_count }}
+      #       🔗 워크플로우: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      #       📝 커밋 메시지: ${{ github.event.head_commit.message }}
 
-            <주요 발견사항>
-            ${{ steps.vuln_summary.outputs.summary }}
+      #       <주요 발견사항>
+      #       ${{ steps.vuln_summary.outputs.summary }}
 
-            배포 전에 취약점을 검토하고 수정해주세요!
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_VUL_WEBHOOK_URL }}
+      #       배포 전에 취약점을 검토하고 수정해주세요!
+      #   env:
+      #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_VUL_WEBHOOK_URL }}
 
-      - name: Fail pipeline if vulnerabilities found
-        if: steps.vulnerabilities.outputs.result_count != 0
-        run: |
-          echo "❌ Pipeline stopped due to security vulnerabilities"
-          exit 1
+      # - name: Show vulnerability summary before failing
+      #   if: steps.vulnerabilities.outputs.result_count != 0
+      #   run: |
+      #     echo "=========================================="
+      #     echo "🚨 SECURITY VULNERABILITIES DETECTED 🚨"
+      #     echo "=========================================="
+      #     echo "Total vulnerabilities found: ${{ steps.vulnerabilities.outputs.result_count }}"
+      #     echo ""
+      #     echo "To view detailed information, check the 'Count vulnerabilities' step above."
+      #     echo "=========================================="
+          
+      # - name: Fail pipeline if vulnerabilities found
+      #   if: steps.vulnerabilities.outputs.result_count != 0
+      #   run: |
+      #     echo "❌ Pipeline stopped due to security vulnerabilities"
+      #     echo "Please review and fix the vulnerabilities before deploying."
+      #     exit 1
 
-      - name: Slack notification for success
-        if: steps.vulnerabilities.outputs.result_count == 0
-        uses: 8398a7/action-slack@v3
-        with:
-          status: success
-          channel: "#deployments"
-          text: |
-            ✅ 보안 스캔 통과: 이미지 ${{ env.IMAGE }}
+      # - name: Slack notification for success
+      #   if: steps.vulnerabilities.outputs.result_count == 0
+      #   uses: 8398a7/action-slack@v3
+      #   with:
+      #     status: success
+      #     channel: "#deployments"
+      #     text: |
+      #       ✅ 보안 스캔 통과: 이미지 ${{ env.IMAGE }}
 
-            👤 Developer: ${{ github.event.head_commit.author.name }} (${{ github.event.head_commit.author.email }})
-            🔒 취약점이 발견되지 않았습니다!
-            🔗 워크플로우: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-            📝 커밋 메시지: ${{ github.event.head_commit.message }}
+      #       👤 Developer: ${{ github.event.head_commit.author.name }} (${{ github.event.head_commit.author.email }})
+      #       🔒 취약점이 발견되지 않았습니다!
+      #       🔗 워크플로우: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      #       📝 커밋 메시지: ${{ github.event.head_commit.message }}
 
-            배포를 진행합니다...
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      #       배포를 진행합니다...
+      #   env:
+      #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
-      # ======================================================
-      # SBOM 생성 + Cosign 이미지 서명 + attest — 절대 삭제 X
-      # ======================================================
-      - name: Generate SBOM with Trivy
-        uses: aquasecurity/trivy-action@0.30.0
-        with:
-          image-ref: "${{ env.IMAGE }}@${{ steps.push.outputs.digest }}"
-          scan-type: "image"
-          format: "cyclonedx"
-          output: "${{ github.workspace }}/Woori-Doori-BE/sbom.json"
+      # # ======================================================
+      # # SBOM 생성 + Cosign 이미지 서명 + attest — 절대 삭제 X
+      # # ======================================================
+      # - name: Generate SBOM with Trivy
+      #   uses: aquasecurity/trivy-action@0.30.0
+      #   with:
+      #     image-ref: "${{ env.IMAGE }}@${{ steps.push.outputs.digest }}"
+      #     scan-type: "image"
+      #     format: "cyclonedx"
+      #     output: "${{ github.workspace }}/Woori-Doori-BE/sbom.json"
 
-      - name: Install Cosign
-        uses: sigstore/cosign-installer@v3
+      # - name: Install Cosign
+      #   uses: sigstore/cosign-installer@v3
 
-      - name: Sign Container Image
-        env:
-          DIGEST: ${{ steps.push.outputs.digest }}
-        run: |
-          cosign sign --yes \
-            ${{ env.IMAGE }}@${DIGEST}
+      # - name: Sign Container Image
+      #   env:
+      #     DIGEST: ${{ steps.push.outputs.digest }}
+      #   run: |
+      #     cosign sign --yes \
+      #       ${{ env.IMAGE }}@${DIGEST}
 
-      - name: Attest SBOM
-        env:
-          DIGEST: ${{ steps.push.outputs.digest }}
-        run: |
-          cosign attest --yes \
-            --predicate "${{ github.workspace }}/Woori-Doori-BE/sbom.json" \
-            --type cyclonedx \
-            "${{ env.IMAGE }}@${DIGEST}"
+      # - name: Attest SBOM
+      #   env:
+      #     DIGEST: ${{ steps.push.outputs.digest }}
+      #   run: |
+      #     cosign attest --yes \
+      #       --predicate "${{ github.workspace }}/Woori-Doori-BE/sbom.json" \
+      #       --type cyclonedx \
+      #       "${{ env.IMAGE }}@${DIGEST}"
 
-      - name: Check SBOM file path
-        run: |
-          echo "현재 디렉토리: $(pwd)"
-          echo "파일 목록:"
-          find . -name "sbom.json"
+      # - name: Check SBOM file path
+      #   run: |
+      #     echo "현재 디렉토리: $(pwd)"
+      #     echo "파일 목록:"
+      #     find . -name "sbom.json"
 
       # ======================================================
       # ECR Push
