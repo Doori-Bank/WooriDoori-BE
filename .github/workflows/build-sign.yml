@@ -305,4 +305,5 @@ jobs:
           codedeploy-application: ${{ env.CODEDEPLOY_APP }}
           codedeploy-deployment-group: ${{ env.CODEDEPLOY_DG }}
           codedeploy-appspec: appspec.json
+          codedeploy-task-definition: ${{ steps.render_taskdef.outputs.task-definition }}   # ★ 반드시 필요
           wait-for-service-stability: true
