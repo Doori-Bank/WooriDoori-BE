@@ -296,7 +296,7 @@ jobs:
       - name: Build Docker image
         run: |
           docker build -t $ECR_URI:$IMAGE_TAG \
-          -f eks_spring_boot/Dockerfile eks_spring_boot
+          -f Woori-Doori-BE/Dockerfile eks_spring_boot
 
       - name: Push Docker image
         run: docker push $ECR_URI:$IMAGE_TAG
