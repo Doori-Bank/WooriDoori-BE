@@ -102,17 +102,40 @@ jobs:
           severity: "CRITICAL,HIGH,MEDIUM"
           exit-code: 0
 
+      - name: Debug SARIF file structure
+        if: always()
+        run: |
+          if [ -f "trivy-results.sarif" ]; then
+            echo "=== SARIF File Structure ==="
+            echo "File size: $(wc -c < trivy-results.sarif) bytes"
+            echo "First 500 chars:"
+            head -c 500 trivy-results.sarif
+            echo ""
+            echo "=== Checking structure ==="
+            jq '.runs[0].results | type' trivy-results.sarif 2>/dev/null || echo "Could not parse runs[0].results"
+            echo "=========================="
+          else
+            echo "SARIF file not found"
+          fi
+
       - name: Count vulnerabilities
         id: vulnerabilities
         run: |
           if [ -f "trivy-results.sarif" ]; then
-            count=$(jq '.runs[0].results | length' trivy-results.sarif)
+            # SARIF 파일 구조 확인 및 안전한 카운트
+            count=$(jq -r 'if .runs and .runs[0] and .runs[0].results then (.runs[0].results | length) else 0 end' trivy-results.sarif 2>/dev/null || echo "0")
+            
+            # 숫자로 변환 (null이나 빈 문자열 처리)
+            if [ -z "$count" ] || [ "$count" = "null" ]; then
+              count=0
+            fi
+            
             echo "result_count=$count" >> $GITHUB_OUTPUT
             echo "Found $count vulnerabilities"
 
             if [ "$count" -gt 0 ]; then
               echo "=== Vulnerability Details ==="
-              jq -r '.runs[0].results[] | "\(.ruleId): \(.message.text)"' trivy-results.sarif
+              jq -r '.runs[0].results[]? | "\(.ruleId // .rule.id // "unknown"): \(.message.text // .message.markdown // "No description")"' trivy-results.sarif 2>/dev/null || echo "Could not parse vulnerability details"
               echo "============================="
             fi
           else
@@ -125,14 +148,17 @@ jobs:
         id: vuln_summary
         run: |
           summary=$(jq -r '
-            .runs[0].results
-            | .[0:10]
-            | to_entries[]
-            | (
-                ("\(.key+1). \(.value.ruleId)") + "\n" +
-                (.value.message.text) + "\n"
-              )
-          ' trivy-results.sarif)
+            if .runs and .runs[0] and .runs[0].results then
+              .runs[0].results[0:10]
+              | to_entries[]
+              | (
+                  ("\(.key+1). \(.value.ruleId // .value.rule.id // "unknown")") + "\n" +
+                  (.value.message.text // .value.message.markdown // "No description") + "\n"
+                )
+            else
+              "Could not parse vulnerability details"
+            end
+          ' trivy-results.sarif 2>/dev/null || echo "Error parsing SARIF file")
           echo "summary<<EOF" >> $GITHUB_OUTPUT
           echo "$summary" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
