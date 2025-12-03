@@ -49,8 +49,7 @@ public class SecurityConfig {
         // Spring Boot 3.x에서는 setAllowedOriginPatterns() 사용 권장 (와일드카드 패턴 지원)
         configuration.setAllowedOriginPatterns(Arrays.asList(
                 frontendUrl,
-                dooriBankUrl,
-                "https://www.wooridoori.site/",
+                dooriBankUrl
         ));
 
         // 허용할 HTTP 메서드
