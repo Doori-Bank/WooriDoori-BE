@@ -50,9 +50,7 @@ public class SecurityConfig {
         configuration.setAllowedOriginPatterns(Arrays.asList(
                 frontendUrl,
                 dooriBankUrl,
-                "http://172.16.1.120:*",  // 포트 번호 와일드카드 지원
-                "http://172.16.1.120",
-                "http://localhost:*"  // 로컬 개발 환경 포트 유연하게 처리
+                "https://www.wooridoori.site/",
         ));
 
         // 허용할 HTTP 메서드
