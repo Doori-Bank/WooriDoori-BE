@@ -21,7 +21,7 @@ spring:
         enabled: false
     ollama:
       # Ollama (임베딩용 - 로컬 실행 필요)
-      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+      base-url: ${OLLAMA_BASE_URL}
       embedding:
         model: nomic-embed-text # 임베딩 전용 모델
     vectorstore:
@@ -29,7 +29,7 @@ spring:
         enabled: false # 자동 설정 비활성화, 수동으로 설정
         initialize-schema: true
         client:
-          base-url: ${CHROMA_BASE_URL:http://localhost:8000}
+          base-url: ${CHROMA_BASE_URL}
 
   datasource:
     db1:
@@ -147,7 +147,7 @@ app:
     rules: classpath:prompts/rules_score.md
 
 # 프론트엔드 URL 설정
-FRONTEND_URL: http://localhost:5173
+FRONTEND_URL: ${FRONTEND_URL}
 # Actuator 설정
 management:
   endpoints:
