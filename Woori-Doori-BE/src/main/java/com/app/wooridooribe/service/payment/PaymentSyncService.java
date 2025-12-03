@@ -175,9 +175,11 @@ public class PaymentSyncService {
         
         // 위험도 체크 및 알림 전송 (히스토리 추가 시에만, Member가 있는 경우에만)
         if (bankMember != null) {
+            log.info("위험도 체크 시작: memberId={}, newHistoryPrice={}, accountNumber={}, historyId={}", 
+                    bankMember.getId(), saved.getHistoryPrice(), accountNumber, historyId);
             checkAndSendRiskNotification(bankMember.getId(), saved.getHistoryPrice());
         } else {
-            log.debug("Member가 없어서 위험도 체크 스킵: accountNumber={}, historyId={}", accountNumber, historyId);
+            log.warn("Member가 없어서 위험도 체크 스킵: accountNumber={}, historyId={}", accountNumber, historyId);
         }
         
         return savedId;
@@ -192,11 +194,12 @@ public class PaymentSyncService {
      * @param newHistoryPrice 새로 추가된 히스토리의 금액
      */
     private void checkAndSendRiskNotification(Long memberId, Integer newHistoryPrice) {
+        log.info("checkAndSendRiskNotification 호출: memberId={}, newHistoryPrice={}", memberId, newHistoryPrice);
         try {
             // 이번 달 목표 조회
             Optional<Goal> goalOpt = goalRepository.findCurrentMonthGoalByMemberId(memberId);
             if (goalOpt.isEmpty()) {
-                log.debug("목표가 없어서 위험도 체크 스킵: memberId={}", memberId);
+                log.warn("목표가 없어서 위험도 체크 스킵: memberId={}", memberId);
                 return;
             }
             
@@ -244,11 +247,42 @@ public class PaymentSyncService {
             log.info("위험도 레벨 비교: memberId={}, previousRiskLevel={}, currentRiskLevel={}, previousPercent={}%, currentPercent={}%", 
                     memberId, previousRiskLevel, currentRiskLevel, previousPercent, currentPercent);
             
-            // 위험도 레벨이 올라갔을 때만 알림 전송 (20% 단위로)
+            // 알림 전송 조건:
+            // 1. 위험도 레벨이 올라갔을 때 (20% 단위로)
+            // 2. 정확히 60%에 도달했을 때 (60%를 넘는 순간)
+            // 3. 정확히 80%에 도달했을 때 (80%를 넘는 순간)
+            boolean shouldSendNotification = false;
+            int notificationRiskLevel = currentRiskLevel;
+            String reason = "";
+            
+            // 조건 1: 레벨이 올라갔을 때
             if (currentRiskLevel > previousRiskLevel && currentRiskLevel >= 20) {
-                sendRiskNotification(memberId, currentPercent, currentRiskLevel);
-                log.info("위험도 알림 전송: memberId={}, previousRiskLevel={} -> currentRiskLevel={}", 
-                        memberId, previousRiskLevel, currentRiskLevel);
+                shouldSendNotification = true;
+                notificationRiskLevel = currentRiskLevel;
+                reason = String.format("레벨 상승: %d%% -> %d%%", previousRiskLevel, currentRiskLevel);
+            }
+            // 조건 2: 정확히 60%에 도달했을 때 (60%를 넘는 순간)
+            if (!shouldSendNotification && currentPercent >= 60 && previousPercent < 60) {
+                shouldSendNotification = true;
+                notificationRiskLevel = 60;
+                reason = String.format("60%% 도달: %d%% -> %d%%", previousPercent, currentPercent);
+            }
+            // 조건 3: 정확히 80%에 도달했을 때 (80%를 넘는 순간)
+            if (!shouldSendNotification && currentPercent >= 80 && previousPercent < 80) {
+                shouldSendNotification = true;
+                notificationRiskLevel = 80;
+                reason = String.format("80%% 도달: %d%% -> %d%%", previousPercent, currentPercent);
+            }
+            
+            if (shouldSendNotification) {
+                log.info("위험도 알림 전송 조건 충족: memberId={}, reason={}, previousPercent={}% -> currentPercent={}%, previousRiskLevel={} -> notificationRiskLevel={}", 
+                        memberId, reason, previousPercent, currentPercent, previousRiskLevel, notificationRiskLevel);
+                sendRiskNotification(memberId, currentPercent, notificationRiskLevel);
+                log.info("위험도 알림 전송 완료: memberId={}, riskLevel={}%, currentPercent={}%", 
+                        memberId, notificationRiskLevel, currentPercent);
+            } else {
+                log.debug("위험도 알림 전송 조건 미충족: memberId={}, previousPercent={}%, currentPercent={}%, previousRiskLevel={}, currentRiskLevel={}", 
+                        memberId, previousPercent, currentPercent, previousRiskLevel, currentRiskLevel);
             }
             
         } catch (Exception e) {

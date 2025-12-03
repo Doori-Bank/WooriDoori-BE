@@ -136,7 +136,7 @@ public class CardHistoryQueryDslImpl implements CardHistoryQueryDsl {
         QMemberCard memberCard = QMemberCard.memberCard;
 
         Integer totalSpent = queryFactory
-                .select(history.historyPrice.sum())
+                .select(Expressions.numberTemplate(Integer.class, "COALESCE({0}, 0)", history.historyPrice.sum()))
                 .from(history)
                 .join(history.memberCard, memberCard)
                 .where(
@@ -149,7 +149,7 @@ public class CardHistoryQueryDslImpl implements CardHistoryQueryDsl {
         log.info("getTotalSpentByMemberAndDateRange - memberId: {}, startDate: {}, endDate: {}, totalSpent: {}",
                 memberId, startDate, endDate, totalSpent);
 
-        return totalSpent;
+        return totalSpent != null ? totalSpent : 0;
     }
 
     @Override

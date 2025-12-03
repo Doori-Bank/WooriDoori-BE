@@ -21,6 +21,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
+import java.util.List;
 
 @EnableWebSecurity
 @Configuration
@@ -73,6 +74,7 @@ public class SecurityConfig {
         if (normalizedDooriBankUrl != null && !normalizedDooriBankUrl.contains("localhost")) {
             allowedOrigins.add(normalizedDooriBankUrl);
         }
+        allowedOrigins.add("https://api.wooridoori.site");
         
         // 로컬 개발 환경 포트 유연하게 처리 (localhost는 패턴으로 처리)
         allowedOrigins.add("http://localhost:*");
@@ -83,7 +85,7 @@ public class SecurityConfig {
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         
         // 허용할 헤더
-        configuration.setAllowedHeaders(Arrays.asList("*"));
+        configuration.setAllowedHeaders(List.of("*"));
         
         // 인증 정보 포함 허용 (쿠키, Authorization 헤더 등)
         configuration.setAllowCredentials(true);
@@ -92,7 +94,7 @@ public class SecurityConfig {
         configuration.setMaxAge(3600L);
         
         // CORS 응답 헤더 노출 설정 (클라이언트에서 접근 가능한 헤더)
-        configuration.setExposedHeaders(Arrays.asList("*"));
+        configuration.setExposedHeaders(List.of("*"));
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

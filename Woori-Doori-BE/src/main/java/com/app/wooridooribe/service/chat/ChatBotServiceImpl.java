@@ -116,15 +116,19 @@ public class ChatBotServiceImpl implements ChatBotService {
 
 
     @Override
-    public String chat(String message, Member member) {
+    public String chat(String message, Member member, Integer year, Integer month) {
 
         try {
-            // 최신 Goal 조회
-            List<Goal> goals = Optional.ofNullable(
-                    goalRepository.findAllGoalsByMember(member.getId())
-            ).orElse(new ArrayList<>());
-
-            Goal latestGoal = extractLatestGoal(goals);
+            // Goal 조회: year/month가 있으면 해당 월의 목표 조회, 없으면 현재 달의 목표 조회
+            Goal latestGoal;
+            if (year != null && month != null) {
+                LocalDate targetDate = LocalDate.of(year, month, 1);
+                latestGoal = goalRepository.findGoalByMemberIdAndStartDate(member.getId(), targetDate)
+                        .orElse(null);
+            } else {
+                latestGoal = goalRepository.findCurrentMonthGoalByMemberId(member.getId())
+                        .orElse(null);
+            }
             LocalDate goalPeriodStart = (latestGoal != null ? latestGoal.getGoalStartDate() : null);
 
             // 과거 질문 차단

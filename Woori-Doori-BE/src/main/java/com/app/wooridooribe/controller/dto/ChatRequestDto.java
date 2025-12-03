@@ -15,4 +15,10 @@ public class ChatRequestDto {
     @NotBlank(message = "메시지는 필수입니다")
     @Schema(description = "사용자 메시지", example = "안녕하세요!")
     private String message;
+
+    @Schema(description = "조회할 연도 (선택사항, 없으면 현재 달 기준)", example = "2025")
+    private Integer year;
+
+    @Schema(description = "조회할 월 (선택사항, 없으면 현재 달 기준)", example = "12")
+    private Integer month;
 }

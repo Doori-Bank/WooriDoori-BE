@@ -39,7 +39,7 @@ public class ChatController {
         MemberDetail principal = (MemberDetail) authentication.getPrincipal();
         Member member = principal.getMember();
 
-        String response = chatBotService.chat(request.getMessage(), member);
+        String response = chatBotService.chat(request.getMessage(), member, request.getYear(), request.getMonth());
         return ResponseEntity.ok(new ChatResponseDto(response));
     }
 }

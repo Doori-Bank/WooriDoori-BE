@@ -21,7 +21,7 @@ public class CardHistory {
     private Long id; // 결제내역 고유번호
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_card_id", nullable = true)
+    @JoinColumn(name = "user_card_id", nullable = false)
     private MemberCard memberCard; // 유저 카드 데이터 번호
 
     @Column(name = "history_date", nullable = false)
