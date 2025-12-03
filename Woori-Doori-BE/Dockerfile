@@ -22,16 +22,23 @@ RUN --mount=type=cache,target=/root/.gradle/caches \
     ./gradlew bootJar -x test --no-daemon
 
 # ---------- Runtime stage ----------
+# FROM eclipse-temurin:17-jre-alpine
+# WORKDIR /app
+# # 타임존, JVM 옵션
+# ENV TZ=Asia/Seoul
+# ENV JAVA_OPTS=""
+# # 빌드된 JAR 파일 복사
+# COPY --from=builder /build/build/libs/*.jar app.jar
+# EXPOSE 8080
+# ENTRYPOINT ["/bin/sh", "-c", "export $(grep -v '^#' /app/.env | xargs) && java -jar app.jar"]
+
+
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
-
-# 타임존, JVM 옵션
 ENV TZ=Asia/Seoul
 ENV JAVA_OPTS=""
-
-# 빌드된 JAR 파일 복사
+# GitHub Actions에서 생성된 .env 파일 복사
+COPY .env /app/.env
 COPY --from=builder /build/build/libs/*.jar app.jar
-
 EXPOSE 8080
-
 ENTRYPOINT ["/bin/sh", "-c", "export $(grep -v '^#' /app/.env | xargs) && java -jar app.jar"]
