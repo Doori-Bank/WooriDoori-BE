@@ -33,16 +33,28 @@ public class GoalScoreBatchConfig {
 
     /**
      * 멀티스레드 TaskExecutor 설정
-     * - corePoolSize: 기본 스레드 수
-     * - maxPoolSize: 최대 스레드 수
-     * - queueCapacity: 대기 큐 크기
+     * 
+     * 스레드 풀 동작 방식:
+     * 1. 초기: corePoolSize(5개)만큼 스레드 생성
+     * 2. 작업이 들어오면:
+     *    - core 스레드가 여유 있으면 → core 스레드에서 처리
+     *    - 모든 core 스레드가 busy이고 queueCapacity(100개)에 여유 있으면 → 큐에 대기
+     *    - 모든 core 스레드가 busy이고 큐가 가득 차면 → maxPoolSize(10개)까지 스레드 추가 생성
+     * 3. 작업이 줄어들면:
+     *    - 큐가 비고, corePoolSize 초과 스레드는 유휴 시간 후 종료
+     *    - 최종적으로 corePoolSize(5개)만 유지
+     * 
+     * 예시:
+     * - 작업 5개 이하: 5개 스레드만 사용
+     * - 작업 6~105개: 5개 스레드 + 큐에 대기
+     * - 작업 106개 이상: 스레드가 6~10개로 증가 (큐가 가득 차면)
      */
     @Bean(name = "goalScoreTaskExecutor")
     public TaskExecutor goalScoreTaskExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(5); // 기본 5개 스레드
-        executor.setMaxPoolSize(10); // 최대 10개 스레드
-        executor.setQueueCapacity(100); // 대기 큐 100개
+        executor.setCorePoolSize(5); // 기본 5개 스레드 (항상 유지)
+        executor.setMaxPoolSize(10); // 최대 10개 스레드 (큐가 가득 차면 증가)
+        executor.setQueueCapacity(100); // 대기 큐 100개 (큐가 가득 차면 스레드 증가)
         executor.setThreadNamePrefix("goal-score-batch-");
         executor.setWaitForTasksToCompleteOnShutdown(true);
         executor.setAwaitTerminationSeconds(60);
@@ -66,7 +78,7 @@ public class GoalScoreBatchConfig {
     /**
      * 목표 점수 계산 Step
      * - 청크 크기: 10개씩 처리
-     * - 멀티스레딩 활성화 (주석 처리하여 먼저 단일 스레드로 테스트)
+     * - 멀티스레딩 활성화 (최대 10개 스레드로 병렬 처리)
      */
     @Bean
     public Step calculateGoalScoreStep() {
@@ -79,7 +91,7 @@ public class GoalScoreBatchConfig {
                 .reader(memberItemReader()) // @StepScope Bean - Step 실행 시 Spring이 자동으로 생성
                 .processor(goalScoreItemProcessor)
                 .writer(goalScoreItemWriter)
-                // .taskExecutor(goalScoreTaskExecutor()) // 멀티스레딩 활성화 (일시적으로 비활성화)
+                .taskExecutor(goalScoreTaskExecutor()) // 멀티스레딩 활성화
                 .build();
     }
 

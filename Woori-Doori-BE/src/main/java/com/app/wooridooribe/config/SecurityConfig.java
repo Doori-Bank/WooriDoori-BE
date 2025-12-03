@@ -74,7 +74,9 @@ public class SecurityConfig {
         if (normalizedDooriBankUrl != null && !normalizedDooriBankUrl.contains("localhost")) {
             allowedOrigins.add(normalizedDooriBankUrl);
         }
+        // 프로덕션 도메인 추가
         allowedOrigins.add("https://api.wooridoori.site");
+        allowedOrigins.add("https://www.wooridoori.site");
         
         // 로컬 개발 환경 포트 유연하게 처리 (localhost는 패턴으로 처리)
         allowedOrigins.add("http://localhost:*");
