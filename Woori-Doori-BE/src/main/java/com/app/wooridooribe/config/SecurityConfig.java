@@ -35,6 +35,16 @@ public class SecurityConfig {
 
     @Value("${DOORIBANK_URL}")
     private String dooriBankUrl;
+    
+    /**
+     * URL의 끝 슬래시 제거 (CORS origin 매칭을 위해)
+     */
+    private String normalizeUrl(String url) {
+        if (url == null) {
+            return null;
+        }
+        return url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
+    }
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -47,10 +57,27 @@ public class SecurityConfig {
         
         // 허용할 오리진 설정
         // Spring Boot 3.x에서는 setAllowedOriginPatterns() 사용 권장 (와일드카드 패턴 지원)
-        configuration.setAllowedOriginPatterns(Arrays.asList(
-                frontendUrl,
-                dooriBankUrl
-        ));
+        // frontendUrl이 localhost인 경우 패턴에 포함되므로 중복 제거
+        java.util.List<String> allowedOrigins = new java.util.ArrayList<>();
+        
+        // URL 정규화 (끝 슬래시 제거)
+        String normalizedFrontendUrl = normalizeUrl(frontendUrl);
+        String normalizedDooriBankUrl = normalizeUrl(dooriBankUrl);
+        
+        // frontendUrl이 localhost가 아닌 경우만 추가 (프로덕션 환경)
+        if (normalizedFrontendUrl != null && !normalizedFrontendUrl.contains("localhost")) {
+            allowedOrigins.add(normalizedFrontendUrl);
+        }
+        
+        // dooriBankUrl 추가
+        if (normalizedDooriBankUrl != null && !normalizedDooriBankUrl.contains("localhost")) {
+            allowedOrigins.add(normalizedDooriBankUrl);
+        }
+        
+        // 로컬 개발 환경 포트 유연하게 처리 (localhost는 패턴으로 처리)
+        allowedOrigins.add("http://localhost:*");
+        
+        configuration.setAllowedOriginPatterns(allowedOrigins);
 
         // 허용할 HTTP 메서드
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));

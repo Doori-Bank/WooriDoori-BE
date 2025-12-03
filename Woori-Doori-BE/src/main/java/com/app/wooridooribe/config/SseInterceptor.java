@@ -3,7 +3,6 @@ package com.app.wooridooribe.config;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -11,9 +10,6 @@ import org.springframework.web.servlet.HandlerInterceptor;
 @Component
 @Slf4j
 public class SseInterceptor implements HandlerInterceptor {
-    
-    @Value("${FRONTEND_URL}")
-    private String frontendUrl;
     
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
@@ -25,12 +21,8 @@ public class SseInterceptor implements HandlerInterceptor {
             response.setHeader("Connection", "keep-alive");
             response.setHeader("X-Accel-Buffering", "no"); // Nginx 버퍼링 방지
             
-            // CORS 헤더 설정
-            response.setHeader("Access-Control-Allow-Origin", frontendUrl);
-            response.setHeader("Access-Control-Allow-Credentials", "true");
-            response.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-            response.setHeader("Access-Control-Allow-Headers", "*");
-            response.setHeader("Access-Control-Expose-Headers", "*");
+            // CORS는 SecurityConfig에서 중앙 관리하므로 여기서는 제거
+            // 중복 설정 시 "multiple values" 오류 발생 가능
             
             log.debug("SSE 인터셉터: 헤더 설정 완료 - URI: {}", request.getRequestURI());
         }

@@ -8,7 +8,6 @@ import com.app.wooridooribe.repository.member.MemberRepository;
 import com.app.wooridooribe.service.sse.SseService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -30,9 +29,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @RequiredArgsConstructor
 @Slf4j
 public class SseController {
-
-    @Value("${FRONTEND_URL}")
-    private String frontendUrl;
 
     private final MemberRepository memberRepository;
     private final SseService sseService;
@@ -66,11 +62,8 @@ public class SseController {
         response.setHeader("Connection", "keep-alive");
         response.setHeader("X-Accel-Buffering", "no"); // Nginx 버퍼링 방지
 
-        // CORS 헤더 설정
-        response.setHeader("Access-Control-Allow-Origin", frontendUrl);
-        response.setHeader("Access-Control-Allow-Credentials", "true");
-        response.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-        response.setHeader("Access-Control-Allow-Headers", "*");
+        // CORS는 SecurityConfig에서 중앙 관리하므로 여기서는 제거
+        // 중복 설정 시 "multiple values" 오류 발생 가능
 
         SseEmitter emitter = sseService.createEmitter(memberId);
 

@@ -32,10 +32,6 @@ ENV JAVA_OPTS=""
 # 빌드된 JAR 파일 복사
 COPY --from=builder /build/build/libs/*.jar app.jar
 
-# entrypoint.sh 복사 및 실행 권한 부여
-COPY entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
-
 EXPOSE 8080
 
-ENTRYPOINT ["/app/entrypoint.sh"]
+ENTRYPOINT ["/bin/sh", "-c", "export $(grep -v '^#' /app/.env | xargs) && java -jar app.jar"]
