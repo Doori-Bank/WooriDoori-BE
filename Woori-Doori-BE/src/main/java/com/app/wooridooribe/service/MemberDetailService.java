@@ -30,6 +30,12 @@ public class MemberDetailService implements UserDetailsService {
         if(member.getStatus() == StatusType.UNABLE) {
             throw new CustomException(ErrorCode.ACCOUNT_SUSPENDED);
         }
+        
+        // lockLevel로 잠금 상태 확인
+        int lockLevel = (member.getLockLevel() == null ? 0 : member.getLockLevel());
+        if (lockLevel >= 3) {
+            throw new CustomException(ErrorCode.ACCOUNT_LOCKED);
+        }
 
         // MemberDetail 객체 생성 시 Member 엔티티를 전달하여 사용자 정보와 권한 정보를 포함
         return new MemberDetail(member);

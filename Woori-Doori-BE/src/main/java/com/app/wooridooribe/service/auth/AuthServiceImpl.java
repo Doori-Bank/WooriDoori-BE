@@ -28,10 +28,12 @@ import java.util.Optional;
 public class AuthServiceImpl implements AuthService {
     private final MemberRepository memberRepository;
     private final TokenProvider tokenProvider;
-    private final RefreshTokenService refreshTokenService;  // Redis 기반으로 변경
+    private final RefreshTokenService refreshTokenService;  
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManagerBuilder authenticationManagerBuilder;
     private final MailService mailService;
+    private final LoginFailureService loginFailureService;
+    
 
     @Override
     @Transactional(readOnly = true)
@@ -107,6 +109,36 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public LoginResponseDto login(String memberId, String password) {
+        // 0. 계정 잠금 상태 확인 (사용자 존재 여부 확인 전에 체크)
+        Optional<Member> memberOpt = memberRepository.findByMemberId(memberId);
+        if (memberOpt.isPresent()) {
+            Member member = memberOpt.get();
+            
+            int lockLevel = (member.getLockLevel() == null ? 0 : member.getLockLevel());
+            
+            // 영구 잠금 상태 확인 (lockLevel >= 3)
+            if (lockLevel >= 3) {
+                log.warn("로그인 시도 - 영구 잠금 상태: {}, lockLevel: {}", memberId, lockLevel);
+                throw new CustomException(ErrorCode.ACCOUNT_LOCKED);
+            }
+            
+            // 임시 잠금 상태 확인 (lockLevel 1 또는 2)
+            if (member.getLockedUntil() != null && member.getLockedUntil().isAfter(LocalDateTime.now())) {
+                log.warn("로그인 시도 - 임시 잠금 상태: {}, lockLevel: {}, 잠금 해제 시간: {}", 
+                        memberId, lockLevel, member.getLockedUntil());
+                throw new CustomException(ErrorCode.ACCOUNT_LOCKED);
+            }
+            
+            // 잠금 시간이 지났다면 잠금 상태 해제
+            if (member.getLockedUntil() != null && member.getLockedUntil().isBefore(LocalDateTime.now())) {
+                member.setLockedUntil(null);
+                member.setFailedAttempts(0);
+                member.setLockLevel(0);
+                memberRepository.save(member);
+                log.info("계정 잠금 자동 해제: {}, 이전 lockLevel: {}", memberId, lockLevel);
+            }
+        }
+
         try {
             // 1. memberId + password 로 AuthenticationToken 생성
             UsernamePasswordAuthenticationToken authenticationToken =
@@ -120,8 +152,11 @@ public class AuthServiceImpl implements AuthService {
             MemberDetail memberDetail = (MemberDetail) authentication.getPrincipal();
             TokenDto tokenDto = tokenProvider.generateTokenDto(memberDetail);
 
-            // 4. 최근 로그인 일시 업데이트
+            // 4. 로그인 성공 처리: 실패 횟수 초기화 및 최근 로그인 일시 업데이트
             Member member = memberDetail.getMember();
+            member.setFailedAttempts(0);
+            member.setLockedUntil(null);
+            member.setLockLevel(0);
             member.setLastLoginDate(LocalDateTime.now());
             memberRepository.save(member);
 
@@ -134,6 +169,7 @@ public class AuthServiceImpl implements AuthService {
                     .refreshToken(tokenDto.getRefreshToken())
                     .build();
             
+            log.info("로그인 성공: {}", memberId);
             return LoginResponseDto.builder()
                     .name(memberDetail.getName())
                     .authority(memberDetail.getMember().getAuthority())
@@ -141,25 +177,44 @@ public class AuthServiceImpl implements AuthService {
                     .build();
                     
         } catch (org.springframework.security.authentication.BadCredentialsException e) {
-            // 비밀번호가 틀린 경우
+            // 비밀번호가 틀린 경우 - 실패 횟수 증가 및 계정 잠금 처리
+            // 별도 서비스에서 REQUIRES_NEW로 실행하여 부모 트랜잭션의 롤백 영향을 받지 않음
+            try {
+                loginFailureService.handleLoginFailure(memberId);
+            } catch (Exception ex) {
+                log.error("로그인 실패 처리 중 오류 발생 - memberId: {}", memberId, ex);
+                // 실패 처리 오류는 무시하고 로그인 실패 예외를 던짐
+            }
             log.error("로그인 실패 - 비밀번호 불일치: {}", memberId);
             throw new CustomException(ErrorCode.INVALID_CREDENTIALS);
         } catch (org.springframework.security.core.userdetails.UsernameNotFoundException e) {
-            // 사용자를 찾을 수 없는 경우
+            // 사용자를 찾을 수 없는 경우 (실패 횟수 증가하지 않음 - 보안상 사용자 존재 여부를 노출하지 않기 위해)
             log.error("로그인 실패 - 사용자 없음: {}", memberId);
             throw new CustomException(ErrorCode.USER_NOT_FOUND);
         } catch (org.springframework.security.authentication.InternalAuthenticationServiceException e) {
             // MemberDetailService에서 던진 예외가 이 예외로 감싸질 수 있음
-            if (e.getCause() instanceof UsernameNotFoundException) {
+            Throwable cause = e.getCause();
+            if (cause instanceof UsernameNotFoundException) {
                 log.error("로그인 실패 - 사용자 없음 (Internal): {}", memberId);
                 throw new CustomException(ErrorCode.USER_NOT_FOUND);
+            } else if (cause instanceof CustomException) {
+                // CustomException이 감싸진 경우 (ACCOUNT_LOCKED, ACCOUNT_SUSPENDED 등)
+                throw (CustomException) cause;
             }
-            throw e;
+            // 그 외의 경우는 비밀번호 불일치로 간주하고 실패 횟수 증가
+            try {
+                loginFailureService.handleLoginFailure(memberId);
+            } catch (Exception ex) {
+                log.error("로그인 실패 처리 중 오류 발생 - memberId: {}", memberId, ex);
+            }
+            log.error("로그인 실패 - 인증 실패 (Internal): {}", memberId, e);
+            throw new CustomException(ErrorCode.INVALID_CREDENTIALS);
         } catch (CustomException e) {
             // 계정 정지 등 이미 정의된 CustomException
             throw e;
         }
     }
+
 
 
 
@@ -258,9 +313,12 @@ public class AuthServiceImpl implements AuthService {
         );
         log.info("임시 비밀번호 발급 및 이메일 발송 완료: {}", resetPasswordDto.getMemberId());
         
-        // 6. DB에 임시 비밀번호 저장 (암호화)
+        // 6. DB에 임시 비밀번호 저장 (암호화) 및 잠금 상태 초기화
         String encodedPassword = passwordEncoder.encode(tempPassword);
         member.setPassword(encodedPassword);
+        member.setFailedAttempts(0);
+        member.setLockLevel(0);
+        member.setLockedUntil(null);
         memberRepository.save(member);
         
         // 저장 후 검증: 저장된 비밀번호가 올바르게 인코딩되었는지 확인

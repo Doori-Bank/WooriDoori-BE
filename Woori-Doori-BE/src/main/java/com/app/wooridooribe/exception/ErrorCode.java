@@ -31,6 +31,7 @@ public enum ErrorCode {
     // 회원 관리 - 로그인
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "ACCOUNT-010", "아이디가 존재하지 않습니다."),
     INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "ACCOUNT-011", "비밀번호가 틀립니다."),
+    ACCOUNT_LOCKED(HttpStatus.FORBIDDEN, "ACCOUNT-021", "로그인 실패 횟수가 초과되어 계정이 잠겼습니다."),
 
     // 회원 관리 - 아이디/비밀번호 찾기
     INVALID_USER(HttpStatus.NOT_FOUND, "ACCOUNT-012", "등록되지 않은 사용자입니다."),
