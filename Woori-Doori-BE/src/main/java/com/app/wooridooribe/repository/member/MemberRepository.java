@@ -2,9 +2,11 @@ package com.app.wooridooribe.repository.member;
 
 import com.app.wooridooribe.entity.Member;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -27,4 +29,15 @@ public interface MemberRepository extends JpaRepository<Member, Long>, MemberQue
             @Param("birthBack") String birthBack,
             @Param("phone") String phone
     );
+
+    /**
+     * 로그인 실패 횟수 증가 및 잠금 상태 업데이트 (Native Query로 직접 UPDATE)
+     */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(value = "UPDATE tbl_member SET failed_attempts = :failedAttempts, lock_level = :lockLevel, locked_until = :lockedUntil WHERE member_id = :memberId", nativeQuery = true)
+    int updateLoginFailure(@Param("memberId") String memberId, 
+                          @Param("failedAttempts") int failedAttempts,
+                          @Param("lockLevel") int lockLevel,
+                          @Param("lockedUntil") LocalDateTime lockedUntil);
+
 }

@@ -51,6 +51,17 @@ public class Member {
     @Column(name = "last_login_date")
     private LocalDateTime lastLoginDate; // 최근 로그인 일시
 
+    @Column(name = "failed_attempts")
+    @Builder.Default
+    private Integer failedAttempts = 0; // 로그인 실패 횟수
+
+    @Column(name = "locked_until")
+    private LocalDateTime lockedUntil; // 계정 잠금 해제 시간
+
+    @Column(name = "lock_level")
+    @Builder.Default
+    private Integer lockLevel = 0; // 잠금 레벨 (0: 잠금 없음, 1: 5분, 2: 10분, 3: 영구 잠금)
+
     // 양방향 관계 설정
     @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
