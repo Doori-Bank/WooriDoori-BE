@@ -36,28 +36,24 @@
         <img src="https://avatars.githubusercontent.com/u/124131845?v=4" width="180px;" alt="서민지"/><br />
         <sub><b>서민지</b></sub>
       </a><br />
-      <sub>Backend</sub>
     </td>
     <td align="center">
       <a href="https://github.com/GodNowoon">
         <img src="https://avatars.githubusercontent.com/u/59138974?v=4" width="180px;" alt="이노운"/><br />
         <sub><b>이노운</b></sub>
       </a><br />
-      <sub>Frontend</sub>
     </td>
     <td align="center">
       <a href="https://github.com/songhajang">
         <img src="https://avatars.githubusercontent.com/u/87272634?v=4" width="180px;" alt="장송하"/><br />
         <sub><b>장송하</b></sub>
       </a><br />
-      <sub>Frontend</sub>
     </td>
     <td align="center">
       <a href="https://github.com/Jsumin07">
         <img src="https://avatars.githubusercontent.com/u/218750309?v=4" width="180px;" alt="전수민"/><br />
         <sub><b>전수민</b></sub>
       </a><br />
-      <sub>Frontend</sub>
     </td>
   </tr>
 </table>
