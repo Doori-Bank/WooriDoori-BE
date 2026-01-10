@@ -189,7 +189,7 @@
 ## 🗄️ ERD
 
 ### 데이터베이스 구조
-<img width="2481" height="1294" alt="Image" src="https://github.com/user-attachments/assets/5d90a5c2-b385-4534-9f9a-b6cb974559e4" />
+<img width="2567" height="2567" alt="우리두리" src="https://github.com/user-attachments/assets/7df2b850-a712-484c-91dc-ab8d0454eeb6" />
 
 ### 주요 테이블
 
